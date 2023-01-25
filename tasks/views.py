@@ -18,8 +18,9 @@ def create_task(request):
 
 @login_required
 def list_task(request):
-    tasks = Task.objects.all()
-    return render(request, 'list_task.html', {'tasks': tasks})
+    list_user = request.user
+    tasks = Task.objects.filter(user=list_user)
+    return render(request, 'list_task.html', {'tasks': tasks, 'user': list_user})
 
 
 '''
