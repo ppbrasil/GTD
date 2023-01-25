@@ -8,6 +8,6 @@ from tasks.forms import TaskCreationForm
 @login_required
 def dashboard(request):
    CreationForm = TaskCreationForm()
-   tasks = Task.objects.all()
+   tasks = Task.objects.filter(user=request.user)
    return render(request, 'dashboard.html', {'form': CreationForm, 'tasks': tasks})
    
