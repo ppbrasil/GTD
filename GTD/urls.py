@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from accounts.views import register_user, login_user
+from accounts.views import register_user, login_user, logout_user
 from .views import dashboard
 
 
@@ -23,5 +23,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
+    path('logout/', logout_user, name='logout'),
     path('', dashboard, name='dashboard'),
 ]
