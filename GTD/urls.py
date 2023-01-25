@@ -16,6 +16,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from accounts.views import register_user, login_user, logout_user
+from tasks.views import list_task, create_task
 from .views import dashboard
 
 
@@ -24,5 +25,7 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
     path('logout/', logout_user, name='logout'),
+    path('list/', list_task, name='list_task'),
+    path('create_task/', create_task, name='create_task'),
     path('', dashboard, name='dashboard'),
 ]

@@ -1,15 +1,42 @@
 {% extends 'base.html' %}
 
 {% block main %}
+
     {% if user.is_authenticated %}
-        <p>Welcome, {{ user.username }}</p>
-        <form method="post" action="{% url 'logout' %}">
-            {% csrf_token %}
-            <input type="submit" value="Logout">
-          </form>
-          
+        <div>
+            <p>Welcome, {{ user.username }}</p>
+            <div>
+                <h2>Create a new Task!</h2>
+                <form action="{% url 'create_task' %}" method="post">
+                  {% csrf_token %}
+                  {{ form.as_p }}
+                  <button type="submit">Taskit!</button>
+                </form>
+            </div>
+            <div>
+                {% for task in tasks %}
+                    <div>
+                        <div>{{ task.name }}</div>
+                        <div>{{ task.due_date }}</div>
+                        <div>{{ task.reminder }}</div>
+                        <div>{{ task.focus }}</div>
+                        <div>{{ task.readiness }}</div>
+                        <div>{{ task.waiting_for }}</div>
+                        <div>{{ task.tags }}</div>
+                        <div>{{ task.notes }}</div>
+                    </div>
+                {% endfor %}
+            </div>
+            <div>
+                <form method="post" action="{% url 'logout' %}">
+                {% csrf_token %}
+                <input type="submit" value="Logout">
+                </form>
+            </div>
+        </div>
     {% else %}
         <p>Please login to access your dashboard</p>
+
     {% endif %}
     
 {% endblock %}
