@@ -22,7 +22,9 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True)
     reminder = models.DateTimeField(null=True, blank=True)
     focus = models.BooleanField(default=False)
-    readiness = models.CharField(max_length=20, choices=[('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')], default='anytime')
+    readiness = models.CharField(max_length=20, choices=[
+        ('inbox', 'inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
+        ], default='inbox')
     waiting_for = models.ForeignKey(WaitingFor, on_delete=models.CASCADE, null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)
     notes = models.TextField(null=True, blank=True)
