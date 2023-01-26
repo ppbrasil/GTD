@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+
+{% block main %}
+
+    {% if user.is_authenticated %}
+        <div>
+
+            <h2>This is a filtered task list!</h2>
+            
+            <form method="get" action="">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit" value="filtered_list_task">Filter list</button>
+            </form>
+
+            {% for task in tasks %}
+                <div>
+                    <div>{{ task.name }}</div>
+                    <div>{{ task.done }}</div>
+                    <div>{{ task.due_date }}</div>
+                    <div>{{ task.reminder }}</div>
+                    <div>{{ task.focus }}</div>
+                    <div>{{ task.readiness }}</div>
+                    <div>{{ task.waiting_for }}</div>
+                    <div>{{ task.tags }}</div>
+                    <div>{{ task.notes }}</div>
+                </div>
+            {% endfor %}
+   
+        </div>
+
+        {% else %}
+        <p>Please login to access your dashboard</p>
+
+    {% endif %}
+    
+{% endblock %}
