@@ -2,7 +2,7 @@ from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from .forms import TaskCreationForm, TaskFilterForm
 from .models import Task
-from django.db.models import Q
+from datetime import date, datetime
 ## from models import Task
 
 @login_required
@@ -11,6 +11,9 @@ def create_task(request):
         form = TaskCreationForm(request.POST)
         if form.is_valid():
             task = form.save(commit=False)
+            reminder_date = form.cleaned_data.get('reminder_date')
+            reminder_time = form.cleaned_data.get('reminder_time')
+            task.reminder = datetime.combine(reminder_date, reminder_time)
             task.user = request.user
             task.save()
     else:
@@ -31,24 +34,20 @@ def filtered_list_task(request):
         tasks = Task.objects.filter(user=request.user)
         for task in tasks:
             print(task.name)
-            print(task.done)
-            print(task.readiness)
-            print(task.focus)
+            print(task.reminder)
         # Present only complete or uncomplete
         if form.cleaned_data['done']==True:
             tasks = tasks.filter(done__exact=form.cleaned_data['done'])
-        print(tasks)
         
         # Filter based on focus   
         if form.cleaned_data['focus']==True:
             tasks = tasks.filter(focus__exact=form.cleaned_data['focus'])
-        print(tasks)
         
         # Filter readiness
         if form.cleaned_data['readiness']:
             if form.cleaned_data['readiness']!='empty':                
                 tasks = tasks.filter(readiness__exact=form.cleaned_data['readiness'])
-        print(tasks)
+
         return render(request, 'filtered_list_task.html', {'tasks': tasks, 'user': request.user, 'form': form})
     else:
         return render(request, 'filtered_list_task.html', {'user': request.user, 'form': form})
