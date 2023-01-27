@@ -7,6 +7,15 @@
 
 {% endblock %}
 
+{% block nav %}
+    <a href={% url 'readiness_filter' 'inbox' %}>Inbox</a>
+    <a href="{% url 'focus_filter' %}">Focus</a>
+
+    <a href="{% url 'readiness_filter' 'anytime' %}">Anytime</a>
+    <a href="{% url 'readiness_filter' 'waiting' %}">Waiting</a>
+    <a href="{% url 'readiness_filter' 'sometime' %}">Sometime</a>
+{% endblock %}
+
 {% block main %}
 
     {% if user.is_authenticated %}

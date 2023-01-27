@@ -52,6 +52,21 @@ def filtered_list_task(request):
     else:
         return render(request, 'filtered_list_task.html', {'user': request.user, 'form': form})
 
+# filtered Inbox
+@login_required
+def readiness_filter(request, filter):
+    filtered_tasks = Task.objects.filter(readiness=filter)
+    form = TaskCreationForm(initial={'user':request.user})
+    return render(request, 'dashboard.html', {'tasks': filtered_tasks, 'form':form})
+
+# filtered Focus
+@login_required
+def focus_filter(request):
+    filtered_tasks = Task.objects.filter(focus=True)
+    form = TaskCreationForm(initial={'user':request.user})
+    return render(request, 'dashboard.html', {'tasks': filtered_tasks, 'form':form})
+
+
 '''
 @login_required
 def task_detail(request, pk):
