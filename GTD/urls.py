@@ -14,9 +14,9 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from accounts.views import register_user, login_user, logout_user
-from tasks.views import list_task, create_task, filtered_list_task, readiness_filter, focus_filter
+from tasks.views import list_task, create_task, filtered_list_task, readiness_filter, focus_filter, done_filter
 from .views import dashboard
 
 
@@ -29,6 +29,8 @@ urlpatterns = [
     path('filtered_list/', filtered_list_task, name='filtered_list_task'),
     path('readiness_filter/<str:filter>/', readiness_filter, name='readiness_filter'),
     path('focus_filter/', focus_filter, name='focus_filter'),
+    path('done_filter/', done_filter, name='done_filter'),
     path('create_task/', create_task, name='create_task'),
     path('', dashboard, name='dashboard'),
+    path('api/', include('api.urls')),
 ]

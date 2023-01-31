@@ -3,70 +3,120 @@
 {% block head%}
     
     {% load static %}
-    <link rel="stylesheet" type="text/css" href="{% static 'table.css' %}">
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
+
 
 {% endblock %}
 
-{% block nav %}
-    <a href={% url 'readiness_filter' 'inbox' %}>Inbox</a>
-    <a href="{% url 'focus_filter' %}">Focus</a>
-
-    <a href="{% url 'readiness_filter' 'anytime' %}">Anytime</a>
-    <a href="{% url 'readiness_filter' 'waiting' %}">Waiting</a>
-    <a href="{% url 'readiness_filter' 'sometime' %}">Sometime</a>
-{% endblock %}
+{% block header %}
+    {% if user.is_authenticated %}
+    <div>
+        <p>Welcome, {{ user.username }}</p>
+    </div>
+    {% else %}
+        <p>Please login to access your dashboard</p>           
+    {% endif %}
+    <div>
+        <form method="post" action="{% url 'logout' %}">
+            {% csrf_token %}
+            <input type="submit" value="Logout">
+        </form>
+    </div>
+{%endblock%}
 
 {% block main %}
-
     {% if user.is_authenticated %}
-        <div>
-            <p>Welcome, {{ user.username }}</p>
-            <div>
-                <h2>Create a new Task!</h2>
-                <form action="{% url 'create_task' %}" method="post">
-                  {% csrf_token %}
-                  {{ form.as_p }}
-                  <button type="submit">Taskit!</button>
-                </form>
-            </div>
-            <div class="table">
-                <div class="table-row">
-                    <div class="table-cell">Name</div>
-                    <div class="table-cell">Done</div>
-                    <div class="table-cell">Due Date</div>
-                    <div class="table-cell">Reminder</div>
-                    <div class="table-cell">Focus</div>
-                    <div class="table-cell">Readiness</div>
-                    <div class="table-cell">Waiting for</div>
-                    <div class="table-cell">Tags</div>
-                    <div class="table-cell">Notes</div>
+    <div class="nav">
+        <p>
+            <a class=nav-link href={% url 'readiness_filter' 'inbox' %}>Inbox</a>
+        </p>
+        <p>
+            <a class=nav-link href="{% url 'focus_filter' %}">Focus</a>
+        </p>
+        <p> 
+            <a class=nav-link href="{% url 'readiness_filter' 'anytime' %}">Anytime</a>
+        </p>
+        <p>
+            <a class=nav-link href="{% url 'readiness_filter' 'waiting' %}">Waiting</a>
+        </p>
+        <p>
+            <a class=nav-link href="{% url 'readiness_filter' 'sometime' %}">Sometime</a>
+        </p>
+        <p>
+            <a class=nav-link href="{% url 'done_filter' %}">Completed</a>
+        </p>
+    </div>
+    <div class="content">
+        <div class="task-form-container">
+            <h2>Create a new Task!</h2>
+            <form class="task-form" action="{% url 'create_task' %}" method="post">
+                {% csrf_token %}
+                <div class=simple-input>
+                    <div>Done {{ form.done }}</div>
+                    <div>Focus {{ form.focus }}</div>
+                    <div>Task name {{ form.name }}</div>
                 </div>
                 <div>
-                    {% for task in tasks %}
-                    <div class="table-row">
-                        <div class="table-cell">{{ task.name }}</div>
-                        <div class="table-cell">{{ task.done }}</div>
-                        <div class="table-cell">{{ task.due_date }}</div>
-                        <div class="table-cell">{{ task.reminder }}</div>
-                        <div class="table-cell">{{ task.focus }}</div>
-                        <div class="table-cell">{{ task.readiness }}</div>
-                        <div class="table-cell">{{ task.waiting_for }}</div>
-                        <div class="table-cell">{{ task.tags }}</div>
-                        <div class="table-cell">{{ task.notes }}</div>
-                    </div>
-                    {% endfor %}
+                    <div class=task-notes>Notes {{ form.notes }}</div>
                 </div>
-            </div>
-            <div>
-                <form method="post" action="{% url 'logout' %}">
-                {% csrf_token %}
-                <input type="submit" value="Logout">
-                </form>
-            </div>
+                <div class="categories-input">
+                    <div class="reminder-fields">
+                        <div >Reminder</div>
+                        <div>{{ form.reminder_date }}</div>
+                        <div>{{ form.reminder_time }}</div>
+                        <div>{{ form.reminder }}</div>
+                    </div>
+                    <div class="reminder-fields">
+                        <div class=field-title>Deadline</div>
+                        <div>{{ form.due_date }}</div>
+                    </div>
+                    <div class="reminder-fields">
+                        <div class=field-title>Status</div>
+                        <div>{{ form.readiness }}</div>
+                    </div>
+                    <div class="reminder-fields">
+                        <div class=field-title>Waiting for</div>
+                        <div>{{ form.waiting_for }}</div>
+                    </div>
+                    <div class="reminder-fields">
+                        <div class=field-title>Tags</div>
+                        <div>{{ form.tags }}</div>
+                    </div>
+                </div>
+                <button class="big-button" type="submit">Taskit!</button>                    
+            </form>
         </div>
+        <div class="task-list" hidden>
+            <div class="table-row">
+                <div class="table-cell">Focus</div>
+                <div class="table-cell">Done</div>
+                <div class="table-cell">Name</div>
+                <div class="table-cell">Due Date</div>
+                <div class="table-cell">Reminder</div>
+                <div class="table-cell">Readiness</div>
+                <div class="table-cell">Waiting for</div>
+                <div class="table-cell">Tags</div>
+                <div class="table-cell">Notes</div>
+            </div>
+            {% for task in tasks %}
+            <div class="table-row">
+                <div class="table-cell"><input type="checkbox" class="focus-checkbox" {% if task.focus %}checked{% endif %}/> </div>
+                <div class="table-cell"><input type="checkbox" class="done-checkbox" {% if task.done %}checked{% endif %}/> </div>
+                <div class="table-cell">{{ task.name }}</div>
+                <div class="table-cell">{{ task.due_date }}</div>
+                <div class="table-cell">{{ task.reminder }}</div>
+                <div class="table-cell">{{ task.readiness }}</div>
+                <div class="table-cell">{{ task.waiting_for }}</div>
+                <div class="table-cell">{{ task.tags }}</div>
+                <div class="table-cell">{{ task.notes }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
     {% else %}
-        <p>Please login to access your dashboard</p>
-
+    <p>Please login to access your dashboard</p>
     {% endif %}
-    
 {% endblock %}
+
+

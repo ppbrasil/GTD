@@ -23,7 +23,7 @@ class Task(models.Model):
     reminder = models.DateTimeField(null=True, blank=True)
     focus = models.BooleanField(default=False)
     readiness = models.CharField(max_length=20, choices=[
-        ('inbox', 'inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
+        ('inbox', 'Inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
         ], default='inbox')
     waiting_for = models.ForeignKey(WaitingFor, on_delete=models.CASCADE, null=True, blank=True)
     tags = models.ManyToManyField(Tag, blank=True)

@@ -1,5 +1,12 @@
 {% extends 'base.html' %}
 
+{% block head%}
+    
+    {% load static %}
+    <link rel="stylesheet" type="text/css" href="{% static 'styles.css' %}">
+
+{% endblock %}
+
 {% block main %}
   <h2>Register</h2>
   <form method="post">

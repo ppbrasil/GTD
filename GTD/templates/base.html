@@ -3,34 +3,31 @@
 
 <head>
     {% block head %}
+
     {% endblock %}
 
     <title>
         {% block title %}
         {% endblock %}
     </title>
-
 </head>
 
-<body>
-
-    <header>
+<body class="body">
+    <header class="header">
         {% block header %}
         {% endblock %}
     </header>
-    <nav>
-        {% block nav %}
-        {% endblock %}
-    </nav>
-    <main>
+    <main class="main">
         {% block main %}
         {% endblock %}
     </main>
-    <footer>
+    <footer class="footer">
         {% block footer %}
+        <div>
+            <p>Copyright ©2022 BlueSkyTask</p>
+        </div>
         {% endblock %}
     </footer>
-
 </body>
 
 </html>

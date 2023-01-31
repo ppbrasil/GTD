@@ -10,7 +10,7 @@
 .table-cell {
     display: table-cell;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--main-color);
 }
 
 .table-cell:first-child {
