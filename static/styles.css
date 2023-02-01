@@ -182,19 +182,15 @@ label{
 }
 
 .task-list{
-    display: grid;
 }
 
 .table-row{
     display: grid;
-    gap: 1rem;
     grid-template-columns: 
-        repeat(10, 1fr);
+        3% 3% 19% 8% 14% 8% 8% 15% 22%
 }
 
 .table-cell{
     border-width: 2px;
-    background-color: black;
     width: 100px;
 }
-

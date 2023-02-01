@@ -20,6 +20,8 @@ class Task(models.Model):
     done = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
     due_date = models.DateField(null=True, blank=True)
+    overdue = models.BooleanField(default=False)
+    set_focus_date = models.DateField(null=True, blank=True)
     reminder = models.DateTimeField(null=True, blank=True)
     focus = models.BooleanField(default=False)
     readiness = models.CharField(max_length=20, choices=[
