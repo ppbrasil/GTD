@@ -1,3 +1,5 @@
+import warnings
+from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Task
@@ -8,6 +10,17 @@ class TagsSerializer(serializers.ModelSerializer):
             'name',
         ]
 
+def validate_due_date(value):
+    if value and value < timezone.now().date():
+        warnings.warn("Due date in the past.")
+    return value
+
+def validate_reminder(value):
+    if value and value < timezone.now():
+        warnings.warn("Reminder in the past.")
+    return value
+
+
 class WaitingForSerializer(serializers.ModelSerializer):
     class Meta:
         fields = [
@@ -17,7 +30,9 @@ class WaitingForSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     waiting_for = WaitingForSerializer(read_only=True)
-    # tags = TagsSerializer(many=True)
+    due_date = serializers.DateField(validators=[validate_due_date], required=False)
+    reminder = serializers.DateTimeField(validators=[validate_reminder], required=False)
+
     class Meta:
         model = Task
         fields = [
@@ -29,5 +44,4 @@ class TaskSerializer(serializers.ModelSerializer):
             'reminder',
             'readiness',
             'notes',
-            'tags',
         ]

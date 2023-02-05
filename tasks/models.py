@@ -17,13 +17,15 @@ class Tag(models.Model):
         
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    is_active = models.BooleanField(default=True)
     done = models.BooleanField(default=False)
+    focus = models.BooleanField(default=False)
     name = models.CharField(max_length=255)
-    due_date = models.DateField(null=True, blank=True)
     overdue = models.BooleanField(default=False)
+    due_date = models.DateField(null=True, blank=True)
     set_focus_date = models.DateField(null=True, blank=True)
     reminder = models.DateTimeField(null=True, blank=True)
-    focus = models.BooleanField(default=False)
+
     readiness = models.CharField(max_length=20, choices=[
         ('inbox', 'Inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
         ], default='inbox')

@@ -13,7 +13,7 @@ auth_to_use = input('What auth to use?\n(Press "T" for token or "P" for Password
 if auth_to_use == "T":
     token = '2fcdfbad5ce716cc1d5e969373bc1fbadb6d1b5d'
     headers = {
-        "Authorization": f"Token {token}",
+        "Authorization": f"Token {token}"
     }
 
 else:
@@ -29,27 +29,10 @@ else:
             "Authorization": f"Token {token}"
         }
 
-endpoint = "http://localhost:8000/api/task/create/"
+#task_id = input("What´s the ID your looking for: ")
 
-payload = {
-    "name": "Task from API",
-    "done": False,
-}
+#endpoint = "http://127.0.0.1:8000/api/task/{}/".format(task_id)
+endpoint = "http://127.0.0.1:8000/api/task/1/"
 
-# Build the request
-req = requests.Request("POST", endpoint, json=payload, headers=headers)
-prepared_req = req.prepare()
+get_response = requests.get(endpoint, headers=headers)
 
-# You can print the whole request here
-print(prepared_req.url)
-print(prepared_req.method)
-print(prepared_req.headers)
-print(prepared_req.body)
-
-# Send the request
-response = requests.Session().send(prepared_req)
-
-if response.status_code == 200:
-    print(response.json())
-else:
-    print("Request failed")

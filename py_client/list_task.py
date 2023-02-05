@@ -1,3 +1,10 @@
+# path('auth/', obtain_auth_token),
+# path('task/<int:pk>', TaskDetailAPIView.as_view(), name='task_detail'),
+# path('task/create/', TaskCreateAPIView.as_view(), name='task_create'),
+# path('task/update/<int:pk>', TaskUpdateAPIView.as_view(), name='task_update'),
+# path('task/disable/<int:pk>', TaskDisableAPIView.as_view(), name='task_disable'),
+# path('task/', TaskListAPIView.as_view(), name='task_list'),
+
 import requests
 from getpass import getpass
 
