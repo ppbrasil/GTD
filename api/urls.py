@@ -14,10 +14,14 @@ from .views import (
     TaskListReadinessWaitingAPIView,
     TaskDisableAPIView,
     TaskListAPIView,
+    CreateAccountView,
+    LogoutView,
 )
 
 urlpatterns = [
+    path('account/create/', CreateAccountView.as_view(), name='account_create'),
     path('auth/', obtain_auth_token),
+    path('auth/logout/', LogoutView.as_view(), name='logout'),
     path('task/<int:pk>/', TaskDetailAPIView.as_view(), name='task_detail'),
     path('task/create/', TaskCreateAPIView.as_view(), name='task_create'),
     path('task/update/<int:pk>/', TaskUpdateAPIView.as_view(), name='task_update'),

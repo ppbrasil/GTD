@@ -10,17 +10,6 @@ class TagsSerializer(serializers.ModelSerializer):
             'name',
         ]
 
-def validate_due_date(value):
-    if value and value < timezone.now().date():
-        warnings.warn("Due date in the past.")
-    return value
-
-def validate_reminder(value):
-    if value and value < timezone.now():
-        warnings.warn("Reminder in the past.")
-    return value
-
-
 class WaitingForSerializer(serializers.ModelSerializer):
     class Meta:
         fields = [
@@ -30,8 +19,8 @@ class WaitingForSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     waiting_for = WaitingForSerializer(read_only=True)
-    due_date = serializers.DateField(validators=[validate_due_date], required=False)
-    reminder = serializers.DateTimeField(validators=[validate_reminder], required=False)
+    due_date = serializers.DateField(required=False, allow_null=True)
+    reminder = serializers.DateTimeField(required=False, allow_null=True)
 
     class Meta:
         model = Task
@@ -45,3 +34,15 @@ class TaskSerializer(serializers.ModelSerializer):
             'readiness',
             'notes',
         ]
+
+        def update(self, instance, validated_data):
+            instance.name = validated_data.get('name', instance.name)
+            instance.focus = validated_data.get('focus', instance.focus)
+            instance.done = validated_data.get('done', instance.done)
+            instance.waiting_for = validated_data.get('waiting_for', instance.waiting_for)
+            instance.due_date = validated_data.get('due_date', instance.due_date)
+            instance.reminder = validated_data.get('reminder', instance.reminder)
+            instance.readiness = validated_data.get('readiness', instance.readiness)
+            instance.notes = validated_data.get('notes', instance.notes)
+            instance.save()
+            return instance

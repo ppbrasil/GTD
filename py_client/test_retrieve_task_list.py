@@ -2,7 +2,7 @@ import requests
 
 url = f"http://localhost:8000/api/task/"
 header = {
-    "Authorization": "Token 5ff6f6747d1ed186ccb97f611285445dc1bbf4ae",
+    "Authorization": "Token 84c734198cd0e413707943cada118abe22840ddf",
     "Content-Type": "application/json"
 }
 

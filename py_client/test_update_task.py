@@ -5,7 +5,7 @@ task_id = input("Enter the task id: ")
 retrieve_url = f"http://localhost:8000/api/task/{task_id}/"
 update_url = f"http://localhost:8000/api/task/update/{task_id}/"
 header = {
-    "Authorization": "Token 5ff6f6747d1ed186ccb97f611285445dc1bbf4ae",
+    "Authorization": "Token 84c734198cd0e413707943cada118abe22840ddf",
     "Content-Type": "application/json"
 }
 
@@ -20,6 +20,10 @@ if response.status_code == 200:
     task["notes"] = input("Enter new notes: ")
 
     response = requests.patch(update_url, headers=header, json=task)
+    print("Request URL: ", response.url)
+    print("Request Headers: ", response.request.headers)
+    print("Request Body: ", response.request.body)
+
 
     if response.status_code == 200:
         task = response.json()
@@ -29,3 +33,4 @@ if response.status_code == 200:
         print(f"Error updating task. Status code: {response.status_code}. Error: {response.json()}")
 else:
     print(f"Error retrieving task. Status code: {response.status_code}. Error: {response.json()}")
+
