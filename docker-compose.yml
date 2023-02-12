@@ -24,3 +24,12 @@ services:
       - ./mysql/db_data:/var/lib/mysql
     ports:
       - "3306:3306"
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
