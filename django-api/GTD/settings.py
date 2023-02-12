@@ -24,7 +24,10 @@ SECRET_KEY = 'django-insecure-rnysqvb6z2+*1^!!n@i(*s-27c^#am0$3nj(14@n=3kcq3_04h
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+]
 
 
 # Application definition
@@ -91,8 +94,12 @@ WSGI_APPLICATION = 'GTD.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR + 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'django_db',
+        'USER': 'django_user',
+        'PASSWORD': 'secret',
+        'HOST': 'db',
+        'PORT': '3306',
     }
 }
 

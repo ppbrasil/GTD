@@ -6,4 +6,21 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - ./django-api/:/api:ro
+      - ./django-api/:/api
+    depends_on:
+      - db
+    entrypoint: ["./entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  db:
+    build:
+      context: ./mysql
+    volumes:
+      - ./mysql/db_data:/var/lib/mysql
+    ports:
+      - "3306:3306"

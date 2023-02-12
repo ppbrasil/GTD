@@ -3,9 +3,12 @@ FROM ubuntu:20.04
 
 # Install required packages
 RUN apt-get update && apt-get install -y \
+    curl \
     python3 \
     python3-pip \
     libpq-dev \
+    netcat \
+    default-libmysqlclient-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -23,6 +26,3 @@ ENV DJANGO_SETTINGS_MODULE=GTD.settings
 
 # Expose port 8000 for the Django development server
 EXPOSE 8000
-
-# Run the Django development server
-CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]
