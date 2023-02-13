@@ -3,6 +3,8 @@ services:
   api:
     build:
       context: ./django-api
+      args:
+        ENV: ${ENV}
     ports:
       - "8000:8000"
     volumes:
@@ -20,6 +22,8 @@ services:
   db:
     build:
       context: ./mysql
+      args:
+        ENV: ${ENV}
     volumes:
       - ./mysql/db_data:/var/lib/mysql
     ports:
