@@ -1,3 +1,5 @@
 /mysql/db_data
 *.pyc
-
+/django-api/accounts/migrations/
+/django-api/api/migrations/
+/django-api/tasks/migrations/
