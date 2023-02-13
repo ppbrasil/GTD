@@ -3,12 +3,12 @@ services:
   api:
     build:
       context: ./django-api
-      args:
-        ENV: ${ENV}
     ports:
       - "8000:8000"
     volumes:
       - ./django-api/:/api
+    env_file:
+      - .env
     depends_on:
       - db
     entrypoint: ["./entrypoint.sh"]
