@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     libpq-dev \
     netcat \
+    default-mysql-client \
     default-libmysqlclient-dev \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
