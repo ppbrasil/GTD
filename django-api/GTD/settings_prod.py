@@ -4,9 +4,11 @@ from .settings import *
 DEBUG = True
 
 ALLOWED_HOSTS = [
-    'budatask.com',
+    'localhost',
+    '127.0.0.1',
     'www.budatask.com',
-    ]
+    'budatask.com',
+]
 
 DATABASES = {
     'default': {

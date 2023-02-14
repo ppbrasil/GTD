@@ -15,7 +15,7 @@ services:
       retries: 3
       start_period: 20s
     environment:
-      - DJANGO_SETTINGS_MODULE=GTD.settings
+      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
 
   nginx:
     image: nginx:alpine
