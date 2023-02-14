@@ -15,8 +15,8 @@ services:
       retries: 3
       start_period: 20s
     environment:
-      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
-      - ENV=prod
+      - DJANGO_SETTINGS_MODULE=GTD.settings
+      - ENV=dev
 
 
   nginx:
