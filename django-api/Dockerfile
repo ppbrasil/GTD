@@ -22,8 +22,5 @@ COPY requirements.txt /api
 # Install required Python packages
 RUN pip3 install -r requirements.txt
 
-# Set the environment variable for Django
-ENV DJANGO_SETTINGS_MODULE=GTD.settings
-
 # Expose port 8000 for the Django development server
 EXPOSE 8000
