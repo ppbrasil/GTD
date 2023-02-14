@@ -19,9 +19,10 @@ services:
       - DATABASE_NAME=gtd-mysql-1
       - DATABASE_USER=admin
       - DATABASE_PASSWORD=Db_Pass!
-      - DATABASE_HOST=mysql -h gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com
+      - DATABASE_HOST=gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com
       - DATABASE_PORT=3306
-      - DJANGO_SETTINGS_MODULE=GTD.settings_prod 
+      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
+
 
   nginx:
     image: nginx:alpine
