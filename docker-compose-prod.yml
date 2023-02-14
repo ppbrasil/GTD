@@ -16,10 +16,10 @@ services:
       start_period: 20s
     environment:
       - DATABASE_ENGINE=django.db.backends.mysql
-      - DATABASE_NAME=django_db
-      - DATABASE_USER=django_user
-      - DATABASE_PASSWORD=secret
-      - DATABASE_HOST=db
+      - DATABASE_NAME=gtd-mysql-1
+      - DATABASE_USER=admin
+      - DATABASE_PASSWORD=Db_Pass!
+      - DATABASE_HOST=mysql -h gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com
       - DATABASE_PORT=3306
       - DJANGO_SETTINGS_MODULE=GTD.settings_prod 
 
