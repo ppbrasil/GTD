@@ -12,7 +12,7 @@ fi
 
 # Wait for the database service to be ready
 while ! nc -z "$HOST" 3306; do
-  echo "Waiting for database service..."
+  echo "Waiting for database service on $HOST..."
   sleep 1
 done
 
