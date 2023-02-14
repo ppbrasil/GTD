@@ -1,7 +1,7 @@
 from .settings import *
 
 # Override settings for production environment
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = [
     'budatask.com',
