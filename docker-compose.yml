@@ -7,10 +7,6 @@ services:
       - "8000:8000"
     volumes:
       - ./django-api/:/api
-    env_file:
-      - .env
-    depends_on:
-      - db
     entrypoint: ["./entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -18,16 +14,15 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
+    environment:
+      - DATABASE_ENGINE=django.db.backends.mysql
+      - DATABASE_NAME=gtd-mysql-1
+      - DATABASE_USER=admin
+      - DATABASE_PASSWORD=Db_Pass!
+      - DATABASE_HOST=gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com
+      - DATABASE_PORT=3306
+      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
 
-  db:
-    build:
-      context: ./mysql
-    volumes:
-      - ./mysql/db_data:/var/lib/mysql
-    env_file:
-      - .env
-    ports:
-      - "3306:3306"
 
   nginx:
     image: nginx:alpine
