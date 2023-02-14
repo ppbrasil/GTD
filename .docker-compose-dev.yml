@@ -17,13 +17,8 @@ services:
       retries: 3
       start_period: 20s
     environment:
-      - DATABASE_ENGINE=django.db.backends.mysql
-      - DATABASE_NAME=django_db
-      - DATABASE_USER=django_user
-      - DATABASE_PASSWORD=secret
-      - DATABASE_HOST=db
-      - DATABASE_PORT=3306
       - DJANGO_SETTINGS_MODULE=GTD.settings 
+      - ENV=dev
 
   db:
     image: mysql:latest
