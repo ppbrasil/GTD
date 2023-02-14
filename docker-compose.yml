@@ -16,7 +16,7 @@ services:
       start_period: 20s
     environment:
       - DATABASE_ENGINE=django.db.backends.mysql
-      - DATABASE_NAME=gtd-mysql-1
+      - DATABASE_NAME=gtd
       - DATABASE_USER=admin
       - DATABASE_PASSWORD=Db_Pass!
       - DATABASE_HOST=gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com
