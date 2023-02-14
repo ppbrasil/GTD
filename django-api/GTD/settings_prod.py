@@ -5,6 +5,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = [
     'budatask.com',
+    'www.budatask.com',
     ]
 
 DATABASES = {

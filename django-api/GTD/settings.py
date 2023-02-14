@@ -97,10 +97,10 @@ WSGI_APPLICATION = 'GTD.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'gtd',
-        'USER': 'admin',
-        'PASSWORD': 'Db_Pass!',
-        'HOST': 'gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com',
+        'NAME': 'django_db',
+        'USER': 'django_user',
+        'PASSWORD': 'secret',
+        'HOST': 'db',
         'PORT': '3306',
     }
 }
