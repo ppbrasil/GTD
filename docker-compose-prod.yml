@@ -16,6 +16,7 @@ services:
       start_period: 20s
     environment:
       - DJANGO_SETTINGS_MODULE=GTD.settings_prod
+       - ENV=prod
 
   nginx:
     image: nginx:alpine
