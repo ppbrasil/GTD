@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Wait for the database service to be ready
-while ! nc -z db 3306; do
+while ! nc -z gtd-mysql-1.cghnoav6qten.us-east-1.rds.amazonaws.com 3306; do
   echo "Waiting for database service..."
   sleep 1
 done
