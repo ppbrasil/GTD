@@ -1,0 +1,35 @@
+version: '3'
+services:
+  api:
+    build:
+      context: ./django-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./django-api/:/api
+    depends_on:
+      - db
+    entrypoint: ["./entrypoint.sh"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    environment:
+      - DATABASE_ENGINE=django.db.backends.mysql
+      - DATABASE_NAME=django_db
+      - DATABASE_USER=django_user
+      - DATABASE_PASSWORD=secret
+      - DATABASE_HOST=db
+      - DATABASE_PORT=3306
+      - DJANGO_SETTINGS_MODULE=GTD.settings_prod 
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
