@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # Set the host based on the value of ENV
+echo "env is: $ENV"
 if [ "$ENV" == "dev" ]; then
   HOST="db"
 elif [ "$ENV" == "prod" ]; then
