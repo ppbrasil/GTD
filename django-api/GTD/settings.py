@@ -96,12 +96,12 @@ WSGI_APPLICATION = 'GTD.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': os.environ.get('DB_ENGINE'),
-        'NAME': os.environ.get('DB_NAME'),
-        'USER': os.environ.get('DB_USER'),
-        'PASSWORD': os.environ.get('DB_PASSWORD'),
-        'HOST': os.environ.get('DB_HOST'),
-        'PORT': os.environ.get('DB_PORT'),
+        'ENGINE': os.environ.get('django.db.backends.mysql'),
+        'NAME': os.environ.get('django_db'),
+        'USER': os.environ.get('django_user'),
+        'PASSWORD': os.environ.get('secret'),
+        'HOST': os.environ.get('db'),
+        'PORT': os.environ.get('3306'),
     }
 }
 
