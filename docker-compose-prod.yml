@@ -7,8 +7,6 @@ services:
       - "8000:8000"
     volumes:
       - ./django-api/:/api
-    depends_on:
-      - db
     entrypoint: ["./entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
