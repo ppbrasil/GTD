@@ -4,7 +4,6 @@ from .settings import *
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    'www.budatask.com',
     'budatask.com',
     ]
 
