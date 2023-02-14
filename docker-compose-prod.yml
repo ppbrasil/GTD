@@ -7,6 +7,9 @@ services:
       - "8000:8000"
     volumes:
       - ./django-api/:/api
+    environment:
+      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
+      - ENV=prod
     entrypoint: ["./entrypoint.sh"]
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -14,9 +17,7 @@ services:
       timeout: 10s
       retries: 3
       start_period: 20s
-    environment:
-      - DJANGO_SETTINGS_MODULE=GTD.settings_prod
-       - ENV=prod
+
 
   nginx:
     image: nginx:alpine
