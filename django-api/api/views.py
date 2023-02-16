@@ -44,9 +44,9 @@ class TaskCreateAPIView(generics.CreateAPIView):
     http_method_names = ['post']
     serializer_class = TaskSerializer
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
+    permission_classes = [permissions.IsAuthenticated]
     def perform_create(self, serializer):
         user = self.request.user
         serializer.save(user=user)
@@ -58,7 +58,6 @@ class TaskDetailAPIView(generics.RetrieveAPIView):
     queryset = Task.objects.all().filter(is_active=True)
     serializer_class = TaskSerializer
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     lookup_field = 'pk'
@@ -73,7 +72,6 @@ class TaskUpdateAPIView(generics.UpdateAPIView):
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     permission_classes = [
@@ -90,7 +88,6 @@ class TaskUpdateAPIView(generics.UpdateAPIView):
 class TaskDisableAPIView(APIView):
     http_method_names = ['patch']
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     permission_classes = [
@@ -109,7 +106,6 @@ class TaskDisableAPIView(APIView):
 class TaskToggleFocusAPIView(APIView):
     http_method_names = ['patch']
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     permission_classes = [
@@ -128,7 +124,6 @@ class TaskToggleFocusAPIView(APIView):
 class TaskToggleDoneAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     permission_classes = [
@@ -148,7 +143,6 @@ class TaskListAPIView(generics.ListAPIView):
     http_method_names = ['get']
     serializer_class = TaskSerializer
     authentication_classes = [
-        authentication.SessionAuthentication, 
         TokenAuthentication,
     ]
     permission_classes = [
