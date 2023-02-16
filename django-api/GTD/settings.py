@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_cron',
     'rest_framework',
     'rest_framework.authtoken',
     'accounts',
@@ -98,7 +99,15 @@ DATABASES = {
         'PASSWORD': 'secret',
         'HOST': 'db',
         'PORT': '3306',
-    }
+    },
+    'test': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'django_db',
+        'USER': 'django_user',
+        'PASSWORD': 'secret',
+        'HOST': 'db',
+        'PORT': '3306',
+    }   
 }
 
 # Password validation

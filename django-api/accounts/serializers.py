@@ -13,15 +13,20 @@ class AccountCreationSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('username', 'password', 'email', 'is_active')
-    
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'is_active': {'default': True}  # Set default value to True
+        }
+
     def create(self, validated_data):
         user = User.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
             email=validated_data['email'],
             is_active=validated_data['is_active']
-            )
+        )
         return user
+
 
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()

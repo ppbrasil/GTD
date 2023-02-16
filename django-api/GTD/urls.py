@@ -31,6 +31,6 @@ urlpatterns = [
     path('focus_filter/', focus_filter, name='focus_filter'),
     path('done_filter/', done_filter, name='done_filter'),
     path('create_task/', create_task, name='create_task'),
-    path('', dashboard, name='dashboard'),
     path('api/', include('api.urls')),
+    path('', dashboard, name='dashboard'),
 ]
