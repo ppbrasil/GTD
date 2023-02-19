@@ -94,16 +94,16 @@ WSGI_APPLICATION = 'GTD.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'api_db',
-        'USER': 'root',
+        'NAME': 'django_db',
+        'USER': 'django_user',
         'PASSWORD': 'secret',
         'HOST': 'db',
         'PORT': '3306',
     },
     'test': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'test_api_db',
-        'USER': 'root',
+        'NAME': 'test_django_db',
+        'USER': 'django_user',
         'PASSWORD': 'secret',
         'HOST': 'db',
         'PORT': '3306',

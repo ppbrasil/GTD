@@ -1,0 +1,34 @@
+Enter the task id: Task successfully retrieved. 
+
+Content: 
+{
+  'name': 'This is a task', 
+  'focus': False, 
+  'done': False, 
+  'waiting_for': None, 
+  'due_date': None, 
+  'reminder': '2020-12-12T10:10:00Z', 
+  'readiness': 'inbox', 
+  'notes': 'kmknknk'
+  }
+
+Request URL: http://localhost:8000/api/task/toggle-done/1/
+Request headers: {
+  'Authorization': 'Token 13f2f18ea582e9c585c817ba52358b5b19e696a8', 
+  'Content-Type': 'application/json', 
+  'Content-Length': '0'
+  }
+Request method: PATCH
+Request body: None
+
+Task new information:
+{
+  'name': 'This is a task', 
+  'focus': False, 
+  'done': False, 
+  'waiting_for': None, 
+  'due_date': None, 
+  'reminder': '2020-12-12T10:10:00Z', 
+  'readiness': 'inbox', 
+  'notes': 'kmknknk'
+  }

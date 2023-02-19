@@ -189,9 +189,12 @@ class TaskToggleFocusAPIViewTest(APITestCase):
             done=False,
             readiness='inbox',
         )
+        print (self.task.id)
+        print(self.task.focus)
 
     def test_toggle_focus_valid_task(self):
         self.client.force_authenticate(user=self.user1)
+        print (self.task.id)
         url = reverse('task_toggle_focus', kwargs={'pk': self.task.id})
         response = self.client.patch(url, format='json')
         print(response.content)

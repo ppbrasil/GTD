@@ -8,7 +8,6 @@ from tasks.serializers import TaskSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
-from .decorators import enable_task_required
 
 import logging
 
@@ -57,7 +56,6 @@ class TaskCreateAPIView(generics.CreateAPIView):
         serializer.save(user=user)
         return super().perform_create(serializer)
 
-@enable_task_required
 class TaskDetailAPIView(generics.RetrieveAPIView):
     http_method_names = ['get']
     queryset = Task.objects.all().filter(is_active=True)
@@ -71,10 +69,9 @@ class TaskDetailAPIView(generics.RetrieveAPIView):
         IsObjectOwner,
     ]
 
-@enable_task_required
 class TaskUpdateAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
-    queryset = Task.objects.all()
+    queryset = Task.objects.all().filter(is_active=True)
     serializer_class = TaskSerializer
     authentication_classes = [
         TokenAuthentication,
@@ -107,46 +104,34 @@ class TaskDisableAPIView(APIView):
         serializer = TaskSerializer(task)
         return Response(serializer.data)
 
-@enable_task_required
 class TaskToggleFocusAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
-    queryset = Task.objects.all()
-    serializer_class = TaskSerializer
     authentication_classes = [TokenAuthentication]
-    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+    permission_classes = [permissions.IsAuthenticated,IsObjectOwner]
+    queryset = Task.objects.all().filter(is_active=True)
     lookup_field = 'pk'
-
-    def patch(self, request, *args, **kwargs):
-        instance = self.get_object()
-        logger.info(f'before save: {instance.focus}')
-        instance.focus = not instance.focus
-        logger.info(f'before save: {instance.focus}')
-        instance.save()
-        logger.info(f'before save: {instance.focus}')
-        serializer = self.get_serializer(instance)
-        return Response(serializer.data)
-
-
-
-@enable_task_required
-class TaskToggleDoneAPIView(generics.UpdateAPIView):
-    http_method_names = ['patch']
-    authentication_classes = [
-        TokenAuthentication,
-    ]
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsObjectOwner,
-    ]
+    serializer_class = TaskSerializer
 
     def patch(self, request, pk):
-        task = get_object_or_404(Task, pk=pk)
-        task.done = not task.done
-        task.save()
-        serializer = TaskSerializer(task)
-        return Response(serializer.data)
+        instance = self.get_object()
+        instance.focus = not instance.focus
+        instance.save()
+        return Response(status=status.HTTP_200_OK)
 
-@enable_task_required
+class TaskToggleDoneAPIView(generics.UpdateAPIView):
+    http_method_names = ['patch']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated,IsObjectOwner]
+    queryset = Task.objects.all().filter(is_active=True)
+    lookup_field = 'pk'
+    serializer_class = TaskSerializer
+
+    def patch(self, request, pk):
+        instance = self.get_object()
+        instance.done = not instance.done
+        instance.save()
+        return Response(status=status.HTTP_200_OK)
+
 class TaskListAPIView(generics.ListAPIView):
     http_method_names = ['get']
     serializer_class = TaskSerializer

@@ -24,11 +24,12 @@ services:
     image: mysql:latest
     environment:
       - MYSQL_DATABASE=django_db
-      - MYSQL_USER=root
+      - MYSQL_USER=django_user
       - MYSQL_PASSWORD=secret
       - MYSQL_ROOT_PASSWORD=secret
+      - MYSQL_USER_PRIVILEGES="*.*:ALL PRIVILEGES"
     volumes:
-      - ./mysql/db_data:/var/lib/mysql
+      - ./mysql/db_data:/var/lib/mysqlß
     ports:
       - "3306:3306"
 
