@@ -94,16 +94,16 @@ WSGI_APPLICATION = 'GTD.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'django_db',
-        'USER': 'django_user',
+        'NAME': 'api_db',
+        'USER': 'root',
         'PASSWORD': 'secret',
         'HOST': 'db',
         'PORT': '3306',
     },
     'test': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'django_db',
-        'USER': 'django_user',
+        'NAME': 'test_api_db',
+        'USER': 'root',
         'PASSWORD': 'secret',
         'HOST': 'db',
         'PORT': '3306',
@@ -164,3 +164,23 @@ REST_FRAMEWORK = {
 
 LOGIN_URL = '/login/'
 LOGIN_REDIRECT_URL = '/dashboard/'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+        'tasks': {
+            'handlers': ['console'],
+            'level': 'INFO',
+        },
+    },
+}

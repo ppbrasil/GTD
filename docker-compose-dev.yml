@@ -24,7 +24,7 @@ services:
     image: mysql:latest
     environment:
       - MYSQL_DATABASE=django_db
-      - MYSQL_USER=django_user
+      - MYSQL_USER=root
       - MYSQL_PASSWORD=secret
       - MYSQL_ROOT_PASSWORD=secret
     volumes:
