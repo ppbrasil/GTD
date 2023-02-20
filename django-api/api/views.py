@@ -29,7 +29,6 @@ class CreateAccountView(generics.CreateAPIView):
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class LogoutView(APIView):
     http_method_names = ['post']
     authentication_classes = [TokenAuthentication]
@@ -42,7 +41,6 @@ class LogoutView(APIView):
         token = request.auth
         token.delete()
         return Response(status=status.HTTP_200_OK)
-
 
 class TaskCreateAPIView(generics.CreateAPIView):
     http_method_names = ['post']
@@ -73,32 +71,25 @@ class TaskUpdateAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
     queryset = Task.objects.all().filter(is_active=True)
     serializer_class = TaskSerializer
-    authentication_classes = [
-        TokenAuthentication,
-    ]
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsObjectOwner,
-    ]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
     lookup_field = 'pk'
 
     def get_serializer(self, *args, **kwargs):
         kwargs['partial'] = True
         return super().get_serializer(*args, **kwargs)
-    
 
 class TaskDisableAPIView(APIView):
     http_method_names = ['patch']
-    authentication_classes = [
-        TokenAuthentication,
-    ]
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsObjectOwner,
-    ]
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
 
     def patch(self, request, pk):
         task = get_object_or_404(Task, pk=pk)
+        if task.is_active == False:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        if request.user != task.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
         task.is_active = False
         task.save()
         serializer = TaskSerializer(task)
@@ -152,7 +143,6 @@ class TaskListAPIView(generics.ListAPIView):
 class TaskListReadinessInboxAPIView(TaskListAPIView):
     def get_queryset(self):
         return super().get_queryset().filter(readiness='inbox')
-
 
 class TaskListReadinessSometimeAPIView(TaskListAPIView):
     def get_queryset(self):

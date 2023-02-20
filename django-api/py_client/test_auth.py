@@ -2,8 +2,8 @@ import requests
 
 # make a POST request to the `/auth/` endpoint to obtain the authentication token
 response = requests.post('http://localhost:8000/api/auth/', data={
-    'username': 'Crystal',
-    'password': 'Q!w2e3r4t5',
+    'username': 'clarinha',
+    'password': 'Cl@rinha1',
 })
 
 # check if the request was successful

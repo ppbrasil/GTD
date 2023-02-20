@@ -5,7 +5,7 @@ task_id = input("Enter the task id: ")
 retrieve_url = f"http://localhost:8000/api/task/{task_id}/"
 toggle_focus_url = f"http://localhost:8000/api/task/disable/{task_id}/"
 header = {
-    "Authorization": "Token fe96bd6bcd97aaa9d6ecb1570db672490325ddc4",
+    "Authorization": "Token c6c1b11be4d99d1d61b0b6925a443a6e51c2e764",
     "Content-Type": "application/json"
 }
 

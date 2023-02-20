@@ -2,9 +2,11 @@ import requests
 import random
 import string
 
-url = "http://localhost:8000/api/task/create/"
+
+create_url = "http://localhost:8000/api/task/create/"
+
 header = {
-    "Authorization": "Token 861a2a0d21b6d62e88263b2e238b671f47cf4e1f",
+    "Authorization": "Token c6c1b11be4d99d1d61b0b6925a443a6e51c2e764",
     "Content-Type": "application/json"
 }
 
@@ -24,7 +26,7 @@ task = {
 
 print(f"Task data to be added: {task}")
 
-response = requests.post(url, headers=header, json=task)
+response = requests.post(create_url, headers=header, json=task)
 
 if response.status_code == 201:
     print(f"Task successfully created. Content: {response.json()}")
