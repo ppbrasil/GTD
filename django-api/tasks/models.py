@@ -25,7 +25,6 @@ class Task(models.Model):
     due_date = models.DateField(null=True, blank=True)
     set_focus_date = models.DateField(null=True, blank=True)
     reminder = models.DateTimeField(null=True, blank=True)
-
     readiness = models.CharField(max_length=20, choices=[
         ('inbox', 'Inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
         ], default='inbox')

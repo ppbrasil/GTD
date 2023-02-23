@@ -18,4 +18,8 @@ while ! nc -z "$HOST" 3306; do
 done
 
 # Start the Django development server
-exec python3 manage.py runserver 0.0.0.0:8000
+python3 manage.py makemigrations
+python3 manage.py migrate
+python3 manage.py migrate test
+service cron start
+python3 manage.py runserver 0.0.0.0:8000

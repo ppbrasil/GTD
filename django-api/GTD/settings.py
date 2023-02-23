@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 import os
 
 
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -41,9 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'django_cron',
     'rest_framework',
     'rest_framework.authtoken',
+    'django_crontab',
     'accounts',
     'tasks',
     'api',
@@ -184,3 +185,11 @@ LOGGING = {
         },
     },
 }
+
+CRONJOBS = [    
+    ('*/1 * * * *', 'tasks.cron.toggle_overdue_tasks'),
+    ('*/1 * * * *', 'tasks.cron.toogle_focus_for_tasks_dueing_today'),
+]
+
+
+
