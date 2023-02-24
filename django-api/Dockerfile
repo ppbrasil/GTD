@@ -23,5 +23,11 @@ COPY requirements.txt /api
 # Install required Python packages
 RUN pip3 install -r requirements.txt
 
+# Add the crontab file to the container
+COPY crontab /etc/cron.d/crontab
+
+# Give execution rights on the cron job
+RUN chmod 0644 /etc/cron.d/crontab
+
 # Expose port 8000 for the Django development server
 EXPOSE 8000

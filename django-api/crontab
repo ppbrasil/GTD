@@ -1,0 +1,2 @@
+*/1 * * * * /usr/bin/python3 /path/to/django/manage.py toggle_overdue
+*/1 * * * * /usr/bin/python3 /path/to/django/manage.py toggle_focus

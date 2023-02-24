@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'rest_framework',
     'rest_framework.authtoken',
-    'django_crontab',
     'accounts',
     'tasks',
     'api',
@@ -185,11 +184,3 @@ LOGGING = {
         },
     },
 }
-
-CRONJOBS = [    
-    ('*/1 * * * *', 'tasks.cron.toggle_overdue_tasks'),
-    ('*/1 * * * *', 'tasks.cron.toogle_focus_for_tasks_dueing_today'),
-]
-
-
-
