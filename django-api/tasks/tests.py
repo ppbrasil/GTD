@@ -4,10 +4,12 @@ from django.contrib.auth.models import User
 from rest_framework.test import APITestCase
 from datetime import timedelta
 from tasks.models import Task
-from django_cron_test import CronTestCase
+from tasks.management.commands.toggle_overdue import Command as ToggleOverdueCommand
+from tasks.management.commands.toggle_focus import Command as ToggleFocusCommand
 
 
-class CronJobOverdueTaskTest(CronTestCase, APITestCase):
+
+class CronJobOverdueTaskTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
             username='OverdueTasktestuser',
@@ -34,8 +36,18 @@ class CronJobOverdueTaskTest(CronTestCase, APITestCase):
             readiness='inbox',
             due_date=timezone.now().date() + timedelta(days=1)
         )
-
     def test_cron_job_toggle_overdue_tasks(self):
+        # Create instances of the toggle overdue and toggle focus commands
+        toggle_overdue_command = ToggleOverdueCommand()
+        toggle_focus_command = ToggleFocusCommand()
+
+        # Call the handle method to execute the commands
+        toggle_overdue_command.handle()
+        toggle_focus_command.handle()
+
+        # Wait for a few seconds to ensure that the commands have completed
+        time.sleep(5)
+
         # Retrieve the task and check that the relevant fields have been updated
         updated_task = Task.objects.get(id=self.overdue_task.id)
         self.assertTrue(updated_task.overdue)
@@ -43,3 +55,5 @@ class CronJobOverdueTaskTest(CronTestCase, APITestCase):
         # Retrieve the task and check that the relevant fields have not been updated
         updated_task2 = Task.objects.get(id=self.non_overdue_task.id)
         self.assertFalse(updated_task2.overdue)
+
+
