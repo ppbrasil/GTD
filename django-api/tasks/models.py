@@ -3,14 +3,14 @@ from django.contrib.auth.models import User
 
 # Create your models here.
 
-class People(models.Model):
+class Person(models.Model):
     name = models.CharField(max_length=255)
     email = models.EmailField()
     phone = models.CharField(max_length=20)
 
 class WaitingFor(models.Model):
-    person = models.ForeignKey(People, on_delete=models.CASCADE)
-    due_date = models.DateField(null=True, blank=True)
+    person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)
+    waiting_date = models.DateTimeField(null=True, blank=True)
 
 class Tag(models.Model):
     name = models.CharField(max_length=255)

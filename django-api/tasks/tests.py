@@ -1,59 +1,240 @@
-import time
+from django.core.management import call_command
+from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
-from rest_framework.test import APITestCase
-from datetime import timedelta
-from tasks.models import Task
-from tasks.management.commands.toggle_overdue import Command as ToggleOverdueCommand
-from tasks.management.commands.toggle_focus import Command as ToggleFocusCommand
+from tasks.models import Task, WaitingFor
 
 
+class SetAnytimeTasksWaitingForNowTestCase(TestCase):
 
-class CronJobOverdueTaskTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(
-            username='OverdueTasktestuser',
-            password='testpass',
-            email='OverdueTasktestuser@example.com'
+        self.user1 = User.objects.create_user(
+            username='SetAnytimeTasksWaitingForNowTestCaseUser',
+            password='testpass123',
+            email='SetAnytimeTasksWaitingForNowTestCaseUserEmail@example.com'
         )
 
-        # Create a task that should be updated by the cron job
-        self.overdue_task = Task.objects.create(
-            user=self.user,
-            name='Task 1',
-            focus=False,
-            done=False,
-            readiness='inbox',
-            due_date=timezone.now().date() - timedelta(days=1)
+    def test_tasks_with_waiting_for_before_or_equal_now_are_updated_to_anytime(self):
+        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now())
+        task_waiting = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=True)
+
+        # Call the command handle method to execute the script
+        call_command('set_anytime_tasks_waiting_for_now')
+
+        # Refresh the task from the database and check if the readiness has been updated
+        task_waiting.refresh_from_db()
+        self.assertEqual(task_waiting.readiness, 'anytime')
+    
+    def test_tasks_with_waiting_for_after_now_are_not_updated_to_anytime(self):
+        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now() + timezone.timedelta(minutes=10))
+        task_waiting = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=True)
+
+        # Call the command handle method to execute the script
+        call_command('set_anytime_tasks_waiting_for_now')
+
+        # Refresh the task from the database and check if the readiness has not been updated
+        task_waiting.refresh_from_db()
+        self.assertEqual(task_waiting.readiness, 'waiting')
+
+    def test_tasks_with_waiting_for_null_are_not_updated_to_anytime(self):
+        task_inbox = Task.objects.create(readiness='inbox', user=self.user1, is_active=True)
+
+        # Call the command handle method to execute the script
+        call_command('set_anytime_tasks_waiting_for_now')
+
+        # Refresh the task from the database and check if the readiness has not been updated
+        task_inbox.refresh_from_db()
+        self.assertEqual(task_inbox.readiness, 'inbox')
+
+    def test_tasks_with_is_active_set_to_false_are_not_updated_to_anytime(self):
+        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now())
+        task_waiting_inactive = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=False)
+
+        # Call the command handle method to execute the script
+        call_command('set_anytime_tasks_waiting_for_now')
+
+        # Refresh the task from the database and check if the readiness has not been updated
+        task_waiting_inactive.refresh_from_db()
+        self.assertEqual(task_waiting_inactive.readiness, 'waiting')
+
+
+class SetFocusTasksDueTodayTestCase(TestCase):
+
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='SetFocusTasksDueTodayTestCaseUser',
+            password='testpass123',
+            email='SetFocusTasksDueTodayTestCaseUserEmail@example.com'
         )
 
-        # Create a task that should not be updated by the cron job
-        self.non_overdue_task = Task.objects.create(
-            user=self.user,
-            name='Task 2',
-            focus=False,
-            done=False,
-            readiness='inbox',
-            due_date=timezone.now().date() + timedelta(days=1)
+    def test_tasks_with_due_date_set_to_today_are_updated_to_have_focus_set_to_true(self):
+        today = timezone.now().date()
+        task_due_today = Task.objects.create(
+            name='Task due today',
+            user=self.user1,
+            due_date=today,
+            is_active=True
         )
-    def test_cron_job_toggle_overdue_tasks(self):
-        # Create instances of the toggle overdue and toggle focus commands
-        toggle_overdue_command = ToggleOverdueCommand()
-        toggle_focus_command = ToggleFocusCommand()
 
-        # Call the handle method to execute the commands
-        toggle_overdue_command.handle()
-        toggle_focus_command.handle()
+        # Call the command handle method to execute the script
+        call_command('set_focus_tasks_due_today')
 
-        # Wait for a few seconds to ensure that the commands have completed
-        time.sleep(5)
+        # Refresh the task from the database and check if focus has been updated to True
+        task_due_today.refresh_from_db()
+        self.assertTrue(task_due_today.focus)
 
-        # Retrieve the task and check that the relevant fields have been updated
-        updated_task = Task.objects.get(id=self.overdue_task.id)
-        self.assertTrue(updated_task.overdue)
+    def test_tasks_with_due_date_set_before_today_are_updated_to_have_focus_set_to_true(self):
+        yesterday = timezone.now().date() - timezone.timedelta(days=1)
+        task_due_yesterday = Task.objects.create(
+            name='Task due yesterday',
+            user=self.user1,
+            due_date=yesterday,
+            is_active=True
+        )
 
-        # Retrieve the task and check that the relevant fields have not been updated
-        updated_task2 = Task.objects.get(id=self.non_overdue_task.id)
-        self.assertFalse(updated_task2.overdue)
+        # Call the command handle method to execute the script
+        call_command('set_focus_tasks_due_today')
+
+        # Refresh the task from the database and check if focus has been updated to True
+        task_due_yesterday.refresh_from_db()
+        self.assertTrue(task_due_yesterday.focus)
+
+    def test_tasks_with_due_date_set_after_today_are_not_updated_to_have_focus_set_to_true(self):
+        tomorrow = timezone.now().date() + timezone.timedelta(days=1)
+        task_due_tomorrow = Task.objects.create(
+            name='Task due tomorrow',
+            user=self.user1,
+            due_date=tomorrow,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_focus_tasks_due_today')
+
+        # Refresh the task from the database and check if focus has not been updated to True
+        task_due_tomorrow.refresh_from_db()
+        self.assertFalse(task_due_tomorrow.focus)
+
+    def test_tasks_with_focus_already_set_to_true_are_not_updated_to_false_by_this_script(self):
+        today = timezone.now().date()
+        task_due_today = Task.objects.create(
+            name='Task due today',
+            user=self.user1,
+            due_date=today,
+            focus=True,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_focus_tasks_due_today')
+
+        # Refresh the task from the database and check if focus has not been updated to False
+        task_due_today.refresh_from_db()
+        self.assertTrue(task_due_today.focus)
+
+    def test_tasks_with_is_active_set_to_false_are_not_updated_by_this_script(self):
+        today = timezone.now().date()
+        task_due_today_inactive = Task.objects.create(
+            name='Task due today (inactive)',
+            user=self.user1,
+            due_date=today,
+            is_active=False
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_focus_tasks_due_today')
+
+        # Refresh the task from the database and check if focus has not been updated
+        task_due_today_inactive.refresh_from_db()
+        self.assertFalse(task_due_today_inactive.focus)
 
 
+class SetOverdueTasksOverdueTestCase(TestCase):
+
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='SetOverdueTasksOverdueTestCaseUser',
+            password='testpass123',
+            email='SetOverdueTasksOverdueTestCaseUserEmail@example.com'
+        )
+
+    def test_tasks_with_due_date_set_before_today_are_updated_to_have_overdue_set_to_true(self):
+        yesterday = timezone.now().date() - timezone.timedelta(days=1)
+        task_overdue = Task.objects.create(
+            name='Task overdue',
+            user=self.user1,
+            due_date=yesterday,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_overdue_tasks_overdue')
+
+        # Refresh the task from the database and check if overdue has been updated to True
+        task_overdue.refresh_from_db()
+        self.assertTrue(task_overdue.overdue)
+
+    def test_tasks_with_due_date_set_today_are_not_updated_to_have_overdue_set_to_true(self):
+        today = timezone.now().date()
+        task_due_today = Task.objects.create(
+            name='Task due today',
+            user=self.user1,
+            due_date=today,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_overdue_tasks_overdue')
+
+        # Refresh the task from the database and check if overdue has not been updated to True
+        task_due_today.refresh_from_db()
+        self.assertFalse(task_due_today.overdue)
+
+    def test_tasks_with_due_date_set_after_today_are_not_updated_to_have_overdue_set_to_true(self):
+        tomorrow = timezone.now().date() + timezone.timedelta(days=1)
+        task_not_overdue = Task.objects.create(
+            name='Task not overdue',
+            user=self.user1,
+            due_date=tomorrow,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_overdue_tasks_overdue')
+
+        # Refresh the task from the database and check if overdue has not been updated to True
+        task_not_overdue.refresh_from_db()
+        self.assertFalse(task_not_overdue.overdue)
+
+    def test_tasks_with_overdue_already_set_to_true_are_not_updated_by_this_script(self):
+        yesterday = timezone.now().date() - timezone.timedelta(days=1)
+        task_overdue = Task.objects.create(
+            name='Task overdue',
+            user=self.user1,
+            due_date=yesterday,
+            overdue=True,
+            is_active=True
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_overdue_tasks_overdue')
+
+        # Refresh the task from the database and check if overdue has not been updated to False
+        task_overdue.refresh_from_db()
+        self.assertTrue(task_overdue.overdue)
+
+    def test_tasks_with_is_active_set_to_false_are_not_updated_by_this_script(self):
+        yesterday = timezone.now().date() - timezone.timedelta(days=1)
+        task_overdue_inactive = Task.objects.create(
+            name='Task overdue (inactive)',
+            user=self.user1,
+            due_date=yesterday,
+            is_active=False
+        )
+
+        # Call the command handle method to execute the script
+        call_command('set_overdue_tasks_overdue')
+
+        # Refresh the task from the database and check if overdue has not been updated
+        task_overdue_inactive.refresh_from_db()
+        self.assertFalse(task_overdue_inactive.overdue)
