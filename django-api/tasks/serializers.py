@@ -3,12 +3,25 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Task
+from .models import Tag
 
-class TagsSerializer(serializers.ModelSerializer):
+class TagSerializer(serializers.ModelSerializer):
     class Meta:
-        fields = [
-            'name',
-        ]
+        model = Tag
+        fields = ['name']
+
+    def update(self, instance, validated_data):
+        if not instance.is_active:
+            raise serializers.ValidationError('Cannot update inactive Tag object')
+        instance.name = validated_data.get('name', instance.name)
+        instance.save()
+        return instance
+
+# class TagsSerializer(serializers.ModelSerializer):
+#     class Meta:
+#         fields = [
+#             'name',
+#         ]
 
 class WaitingForSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,6 +49,8 @@ class TaskSerializer(serializers.ModelSerializer):
         ]
 
         def update(self, instance, validated_data):
+            if not instance.is_active:
+                raise serializers.ValidationError('Cannot update inactive Task object')
             instance.name = validated_data.get('name', instance.name)
             instance.focus = validated_data.get('focus', instance.focus)
             instance.done = validated_data.get('done', instance.done)

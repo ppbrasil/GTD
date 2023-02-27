@@ -1,6 +1,8 @@
 from django.urls import path
 from rest_framework.authtoken.views import obtain_auth_token
 from .views import (
+    CreateAccountView,
+    LogoutView,
     TaskDetailAPIView, 
     TaskCreateAPIView,
     TaskUpdateAPIView,
@@ -14,8 +16,9 @@ from .views import (
     TaskListReadinessWaitingAPIView,
     TaskDisableAPIView,
     TaskListAPIView,
-    CreateAccountView,
-    LogoutView,
+    TagCreateAPIView,
+    TagUpdateAPIView,
+    TagDisableAPIView,
 )
 
 urlpatterns = [
@@ -35,4 +38,7 @@ urlpatterns = [
     path('task/waiting/', TaskListReadinessWaitingAPIView.as_view(), name='waiting_task_list'),
     path('task/disable/<int:pk>/', TaskDisableAPIView.as_view(), name='task_disable'),
     path('task/', TaskListAPIView.as_view(), name='task_list'),
+    path('tag/create/', TagCreateAPIView.as_view(), name='tag_create'),
+    path('tag/update/<int:pk>/', TagUpdateAPIView.as_view(), name='tag_update'),
+    path('tag/disable/<int:pk>/', TagDisableAPIView.as_view(), name='tag_disable'),
 ]

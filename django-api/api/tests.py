@@ -4,8 +4,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task
-
+from tasks.models import Task, Tag
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -92,7 +91,6 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(Task.objects.count(), 0)
 
-
 class TaskUpdateAPIViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='taskupdateuser', password='testpass123', email='taskupdateuser@example.com')
@@ -168,7 +166,6 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.reminder, None)
         self.assertEqual(task.readiness, 'inbox')
         self.assertEqual(task.notes, 'This is a test task')
-
 
 class TaskToggleFocusAPIViewTest(APITestCase):
     def setUp(self):
@@ -943,3 +940,72 @@ class TaskListAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['name'], self.task3.name)
+
+class TagCreateAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='tagcreateuser', password='testpass123', email='tagcreateuser@example.com')
+
+    def test_create_valid_tag(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('tag_create')
+        data = {
+            'name': 'market',
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], 'market')
+
+class TagDisableAPIViewTest(APITestCase):
+    def setUp(self):
+        # Create a test user and authentication token
+        self.user = User.objects.create_user(username='tagdisableuser1', password='testpass', email='tagdisableuser1@example.com')
+
+        # Create some test Tag objects
+        self.tag1 = Tag.objects.create(
+            user=self.user,
+            name='market', 
+        )
+        self.tag2 = Tag.objects.create(
+            user=self.user,
+            name='downtown', 
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+    def test_disable_active_tag(self):
+        # Disable an active tag
+        url = reverse('tag_disable', kwargs={'pk': self.tag1.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check that the tag has been disabled
+        tag = Tag.objects.get(id=self.tag1.id)
+        self.assertFalse(tag.is_active)
+
+    def test_disable_inactive_tag(self):
+        # Try to disable an inactive tag
+        self.tag2.is_active = False
+        self.tag2.save()
+
+        url = reverse('tag_disable', kwargs={'pk': self.tag2.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_tag_of_another_user(self):
+        # Try to disable a tag that belongs to another user
+        user2 = User.objects.create_user(username='tagdisableuser2', password='testpass', email='tagdisableuser2@example.com')
+        tag3 = Tag.objects.create(
+            user=user2,
+            name='beach', 
+        )
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse('tag_disable', kwargs={'pk': tag3.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_nonexistent_tag(self):
+        # Try to disable a tag that doesn't exist
+        url = reverse('tag_disable', kwargs={'pk': 999})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)

@@ -4,16 +4,18 @@ from django.contrib.auth.models import User
 # Create your models here.
 
 class Person(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20)
+    is_active = models.BooleanField(default=True)
 
 class WaitingFor(models.Model):
     person = models.ForeignKey(Person, on_delete=models.CASCADE, null=True, blank=True)
     waiting_date = models.DateTimeField(null=True, blank=True)
 
 class Tag(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
     name = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
         
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
