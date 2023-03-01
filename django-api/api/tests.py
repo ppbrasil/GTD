@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
@@ -57,6 +58,29 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(task.readiness, 'inbox')
         self.assertEqual(task.notes, None)
 
+    def test_create_task_with_tags(self):
+        self.client.force_authenticate(user=self.user)
+        # Create a task with tags
+        url = reverse('task_create')
+        data = {
+            'name': 'Test task',
+            'tags': [{'name': 'tag1'}, {'name': 'tag2'}]
+        }
+        print(data)
+        response = self.client.post(url, data, format='json')
+        print('Request data:', json.dumps(data))
+        print('Response data:', response.content)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that the task and tags have been created
+        task = Task.objects.get(name='Test task')
+        print(task.tags.all())
+        self.assertEqual(task.name, 'Test task')
+        self.assertEqual(task.user, self.user)
+        self.assertEqual(task.tags.count(), 2)
+        self.assertTrue(task.tags.filter(name='tag1').exists())
+        self.assertTrue(task.tags.filter(name='tag2').exists())
+        
     def test_create_invalid_task(self):
         self.client.force_authenticate(user=self.user)
         url = reverse('task_create')
@@ -956,6 +980,7 @@ class TagCreateAPIViewTest(APITestCase):
         self.assertEqual(response.data['name'], 'market')
 
 class TagDisableAPIViewTest(APITestCase):
+
     def setUp(self):
         # Create a test user and authentication token
         self.user = User.objects.create_user(username='tagdisableuser1', password='testpass', email='tagdisableuser1@example.com')

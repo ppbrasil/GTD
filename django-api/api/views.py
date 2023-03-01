@@ -32,10 +32,7 @@ class CreateAccountView(generics.CreateAPIView):
 class LogoutView(APIView):
     http_method_names = ['post']
     authentication_classes = [TokenAuthentication]
-    permission_classes = [
-        permissions.IsAuthenticated,
-        IsObjectOwner,
-    ]
+    permission_classes = [permissions.IsAuthenticated,IsObjectOwner]
 
     def post(self, request, format=None):
         token = request.auth
@@ -45,10 +42,9 @@ class LogoutView(APIView):
 class TaskCreateAPIView(generics.CreateAPIView):
     http_method_names = ['post']
     serializer_class = TaskSerializer
-    authentication_classes = [
-        TokenAuthentication,
-    ]
+    authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+    
     def perform_create(self, serializer):
         user = self.request.user
         serializer.save(user=user)
