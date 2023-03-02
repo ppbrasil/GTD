@@ -153,6 +153,139 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.readiness, 'anytime')
         self.assertEqual(task.notes, 'This is an updated test task')
 
+    def test_add_new_tag_to_task(self):
+        # Add existing tag to task's tag list
+        existing_tag_data = {'name': 'Tag 1', 'user': self.user.id}
+        data = {'tags': [existing_tag_data]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 1)
+        self.assertIn(existing_tag_data['name'], [tag.name for tag in task.tags.all()])
+
+        # Add new tag to task's tag list
+        new_tag_data = {'name': 'New Tag', 'user': self.user.id}
+        data = {'tags': [existing_tag_data, new_tag_data]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 2)
+        self.assertIn(existing_tag_data['name'], [tag.name for tag in task.tags.all()])
+        self.assertIn(new_tag_data['name'], [tag.name for tag in task.tags.all()])
+
+    def test_add_existing_tag_to_task(self):
+        # Create an existing tag
+        existing_tag_name = 'Existing Tag'
+        existing_tag = Tag.objects.create(name=existing_tag_name, user=self.user)
+        
+        # Add existing tag to task's tag list
+        data = {'tags': [{'name': existing_tag_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 1)
+        self.assertIn(existing_tag, task.tags.all())
+
+    def test_create_new_tag_while_trying_to_add_tag_with_same_name_but_from_different_user_to_task(self):
+        another_user=User.objects.create()
+
+        # Create an existing tag with the same name but a different user
+        existing_tag_name = 'Tag from other user'
+        existing_tag = Tag.objects.create(name=existing_tag_name, user=another_user)
+        
+        # Add existing tag to task's tag list
+        data = {'tags': [{'name': existing_tag_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 1)
+        self.assertNotIn(existing_tag, task.tags.all())
+        self.assertIn(existing_tag_name, [tag.name for tag in task.tags.all()])
+
+    def test_remove_all_tags_from_task(self):
+        # Add some tags to the task
+        tag1 = Tag.objects.create(name='Tag 1', user=self.user)
+        tag2 = Tag.objects.create(name='Tag 2', user=self.user)
+        self.task.tags.add(tag1, tag2)
+        self.assertEqual(self.task.tags.count(), 2)
+
+        # Remove all tags from the task
+        data = {'tags': []}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 0)
+        self.assertNotIn(tag1, task.tags.all())
+        self.assertNotIn(tag2, task.tags.all())
+
+    def test_update_task_with_tags(self):
+        # Add some tags to the task
+        tag1 = Tag.objects.create(name='Tag 1', user=self.user)
+        tag2 = Tag.objects.create(name='Tag 2', user=self.user)
+        self.task.tags.add(tag1, tag2)
+
+        # Update the task's name and tags
+        data = {
+            'name': 'Updated Test Task',
+            'tags': [{'name': 'Tag 2', 'user': self.user.id}, {'name': 'Tag 3', 'user': self.user.id}]
+        }
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check that the task and its tags were updated
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.name, 'Updated Test Task')
+        self.assertEqual(task.tags.count(), 2)
+        self.assertNotIn(tag1, task.tags.all())
+        self.assertIn(tag2, task.tags.all())
+        self.assertIn('Tag 3', [tag.name for tag in task.tags.all()])
+
+    def test_add_existing_tag_from_another_user_to_task(self):
+        # Create a tag for a different user
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='testpass123',
+            email='otheruser@example.com'
+        )
+        tag_name = 'Existing Tag'
+        tag = Tag.objects.create(name=tag_name, user=other_user)
+
+        # Add the existing tag to the task of the current user
+        data = {'tags': [{'name': tag_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 1)
+
+        # Verify that the added tag belongs to the current user
+        added_tag = task.tags.first()
+        self.assertEqual(added_tag.name, tag_name)
+        self.assertEqual(added_tag.user, self.user)
+        self.assertNotEqual(added_tag, tag)
+        self.assertNotEqual(added_tag.id, tag.id)
+        self.assertEqual(Tag.objects.filter(name=tag_name, user=self.user).count(), 1)
+        self.assertEqual(Tag.objects.filter(name=tag_name, user=other_user).count(), 1)
+
+    def test_remove_tag_from_task(self):
+        tag = Tag.objects.create(name='Tag 2', user=self.user)
+        self.task.tags.add(tag)
+        self.assertEqual(self.task.tags.count(), 1)
+        data = {'tags': [{'name': 'Tag 1', 'user': self.user.id}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.tags.count(), 1)
+        self.assertNotIn(tag, task.tags.all())
+        self.assertIn(tag, Tag.objects.all())
+
     def test_update_invalid_task_id(self):
         url = reverse('task_update', kwargs={'pk': self.task.id + 1})
         data = {
@@ -978,6 +1111,24 @@ class TagCreateAPIViewTest(APITestCase):
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'market')
+
+class TagUpdateAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='tagupdateuser', password='testpass123', email='tagupdateuser@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.tag = Tag.objects.create(name='market', user=self.user)
+
+    def test_update_valid_tag(self):
+        url = reverse('tag_update', kwargs={'pk': self.tag.id})
+        data = {
+            'name': 'grocery',
+            'is_active': False,
+        }
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        tag = Tag.objects.get(id=self.tag.id)
+        self.assertEqual(tag.name, 'grocery')
+        self.assertFalse(tag.is_active)
 
 class TagDisableAPIViewTest(APITestCase):
 

@@ -8,12 +8,14 @@ from .models import Tag
 
 class TagSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
+    is_active = serializers.BooleanField(default=True)
 
     class Meta:
         model = Tag
         fields = [
             'id', 
-            'name'
+            'name',
+            'is_active',
         ]
 
 class TaskSerializer(serializers.ModelSerializer):
@@ -53,7 +55,7 @@ class TaskSerializer(serializers.ModelSerializer):
         if tags_data is not None:
             instance.tags.clear()
             for tag_data in tags_data:
-                tag, created = Tag.objects.get_or_create(user=instance.user, name=tag_data['name'])
+                tag, created = Tag.objects.update_or_create(user=instance.user, name=tag_data['name'])
                 instance.tags.add(tag)
         return instance
 
