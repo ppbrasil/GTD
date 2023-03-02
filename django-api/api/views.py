@@ -165,11 +165,30 @@ class TagCreateAPIView(generics.CreateAPIView):
     serializer_class = TagSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
+
     def perform_create(self, serializer):
         user = self.request.user
         serializer.save(user=user)
         return super().perform_create(serializer)
 
+class TagDetailAPIView(generics.RetrieveAPIView):
+    http_method_names = ['get']
+    queryset = Tag.objects.all().filter(is_active=True)
+    serializer_class = TagSerializer
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'pk'
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def get(self, request, pk):
+        try:
+            tag = Tag.objects.get(pk=pk)
+            if tag.is_active == False or request.user != tag.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = TagSerializer(tag)
+            return Response(serializer.data)
+        except:
+            return Response(status=status.HTTP_403_FORBIDDEN)    
+    
 class TagUpdateAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
     queryset = Tag.objects.all().filter(is_active=True)
@@ -181,7 +200,19 @@ class TagUpdateAPIView(generics.UpdateAPIView):
     def get_serializer(self, *args, **kwargs):
         kwargs['partial'] = True
         return super().get_serializer(*args, **kwargs)
-    
+
+class TagListAPIView(generics.ListAPIView):
+    http_method_names = ['get']
+    serializer_class = TagSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Tag.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+
 class TagDisableAPIView(APIView):
     http_method_names = ['patch']
     authentication_classes = [TokenAuthentication]

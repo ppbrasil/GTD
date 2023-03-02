@@ -1112,6 +1112,36 @@ class TagCreateAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'market')
 
+class TagDetailAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email='testuser@example.com')
+        self.tag = Tag.objects.create(name='Test Tag', user=self.user)
+        self.url = reverse('tag_detail', kwargs={'pk': self.tag.pk})
+
+    def test_get_valid_tag(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.tag.id)
+        self.assertEqual(response.data['name'], self.tag.name)
+
+    def test_get_invalid_tag(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('tag_detail', kwargs={'pk': self.tag.pk + 1}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_tag_from_different_user(self):
+        other_user = User.objects.create_user(username='testuser2', password='testpass123', email='testuser2@example.com')
+        tag = Tag.objects.create(name='Test Tag 2', user=other_user)
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('tag_detail', kwargs={'pk': tag.pk}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_tag_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
 class TagUpdateAPIViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='tagupdateuser', password='testpass123', email='tagupdateuser@example.com')
@@ -1185,3 +1215,35 @@ class TagDisableAPIViewTest(APITestCase):
         url = reverse('tag_disable', kwargs={'pk': 999})
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class TagListAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(username='user1', password='testpass123', email='user1@example.com')
+        self.user2 = User.objects.create_user(username='user2', password='testpass123', email='user2@example.com')
+        self.tag1 = Tag.objects.create(name='tag1', user=self.user1)
+        self.tag2 = Tag.objects.create(name='tag2', user=self.user1)
+        self.tag3 = Tag.objects.create(name='tag3', user=self.user2)
+
+    def test_list_tags(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('tag_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        tag_names = [tag['name'] for tag in response.data]
+        self.assertIn(self.tag1.name, tag_names)
+        self.assertIn(self.tag2.name, tag_names)
+        self.assertNotIn(self.tag3.name, tag_names)
+
+    def test_list_tags_unauthenticated(self):
+        url = reverse('tag_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_tags_different_user(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('tag_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        tag_names = [tag['name'] for tag in response.data]
+        self.assertNotIn(self.tag3.name, tag_names)

@@ -19,6 +19,8 @@ from .views import (
     TagCreateAPIView,
     TagUpdateAPIView,
     TagDisableAPIView,
+    TagListAPIView,
+    TagDetailAPIView
 )
 
 urlpatterns = [
@@ -41,4 +43,6 @@ urlpatterns = [
     path('tag/create/', TagCreateAPIView.as_view(), name='tag_create'),
     path('tag/update/<int:pk>/', TagUpdateAPIView.as_view(), name='tag_update'),
     path('tag/disable/<int:pk>/', TagDisableAPIView.as_view(), name='tag_disable'),
+    path('tag/', TagListAPIView.as_view(), name='tag_list'),
+    path('tag/<int:pk>/', TagDetailAPIView.as_view(), name='tag_detail'),    
 ]
