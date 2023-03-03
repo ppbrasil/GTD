@@ -16,8 +16,8 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from accounts.views import register_user, login_user, logout_user
-from tasks.views import list_task, create_task, filtered_list_task, readiness_filter, focus_filter, done_filter
-from .views import dashboard
+# from tasks.views import list_task, create_task, filtered_list_task, readiness_filter, focus_filter, done_filter
+# from .views import dashboard
 
 
 urlpatterns = [
@@ -25,12 +25,12 @@ urlpatterns = [
     path('register/', register_user, name='register'),
     path('login/', login_user, name='login'),
     path('logout/', logout_user, name='logout'),
-    path('list/', list_task, name='list_task'),
-    path('filtered_list/', filtered_list_task, name='filtered_list_task'),
-    path('readiness_filter/<str:filter>/', readiness_filter, name='readiness_filter'),
-    path('focus_filter/', focus_filter, name='focus_filter'),
-    path('done_filter/', done_filter, name='done_filter'),
-    path('create_task/', create_task, name='create_task'),
+    # path('list/', list_task, name='list_task'),
+    # path('filtered_list/', filtered_list_task, name='filtered_list_task'),
+    # path('readiness_filter/<str:filter>/', readiness_filter, name='readiness_filter'),
+    # path('focus_filter/', focus_filter, name='focus_filter'),
+    # path('done_filter/', done_filter, name='done_filter'),
+    # path('create_task/', create_task, name='create_task'),
     path('api/', include('api.urls')),
-    path('', dashboard, name='dashboard'),
+    # path('', dashboard, name='dashboard'),
 ]

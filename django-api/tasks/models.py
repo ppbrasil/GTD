@@ -20,9 +20,11 @@ class Tag(models.Model):
     name = models.CharField(max_length=255)
     is_active = models.BooleanField(default=True)
 
-    def __str__(self):
-        return self.name
-    
+    class Meta:
+        abstract = True
+
+class SimpleTag(Tag):
+    pass
         
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -38,7 +40,7 @@ class Task(models.Model):
         ('inbox', 'Inbox'), ('anytime', 'Anytime'), ('waiting', 'Waiting'), ('sometime', 'Sometime')
         ], default='inbox')
     waiting_for = models.ForeignKey(WaitingFor, on_delete=models.CASCADE, null=True, blank=True)
-    tags = models.ManyToManyField(Tag, blank=True)
+    simpletags = models.ManyToManyField(SimpleTag, blank=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

@@ -3,15 +3,15 @@ from django.utils import timezone
 from rest_framework import serializers
 
 from .models import Task
-from .models import Tag
+from .models import SimpleTag
 
 
-class TagSerializer(serializers.ModelSerializer):
+class SimpleTagSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     is_active = serializers.BooleanField(default=True)
 
     class Meta:
-        model = Tag
+        model = SimpleTag
         fields = [
             'id', 
             'name',
@@ -20,7 +20,7 @@ class TagSerializer(serializers.ModelSerializer):
 
 class TaskSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
-    tags = TagSerializer(many=True, required=False)
+    simpletags = SimpleTagSerializer(many=True, required=False)
     due_date = serializers.DateField(required=False, allow_null=True)
     reminder = serializers.DateTimeField(required=False, allow_null=True)
 
@@ -35,27 +35,27 @@ class TaskSerializer(serializers.ModelSerializer):
             'reminder',
             'readiness',
             'notes',
-            'tags',
+            'simpletags',
         ]
 
     def get_tags(self, obj):
-        return TagSerializer(obj.tags.all(), many=True).data
+        return SimpleTagSerializer(obj.simpletags.all(), many=True).data
 
     def create(self, validated_data):
-        tags_data = validated_data.pop('tags', [])
+        simpletags_data = validated_data.pop('simpletags', [])
         task = Task.objects.create(**validated_data)
-        for tag_data in tags_data:
-            tag, created = Tag.objects.get_or_create(user=task.user, name=tag_data['name'])
-            task.tags.add(tag)
+        for simpletag_data in simpletags_data:
+            simpletag, created = SimpleTag.objects.get_or_create(user=task.user, name=simpletag_data['name'])
+            task.simpletags.add(simpletag)
         return task
 
     def update(self, instance, validated_data):
-        tags_data = validated_data.pop('tags', None)
+        simpletags_data = validated_data.pop('simpletags', None)
         instance = super().update(instance, validated_data)
-        if tags_data is not None:
-            instance.tags.clear()
-            for tag_data in tags_data:
-                tag, created = Tag.objects.update_or_create(user=instance.user, name=tag_data['name'])
-                instance.tags.add(tag)
+        if simpletags_data is not None:
+            instance.simpletags.clear()
+            for simpletag_data in simpletags_data:
+                simpletag, created = SimpleTag.objects.update_or_create(user=instance.user, name=simpletag_data['name'])
+                instance.simpletags.add(simpletag)
         return instance
 

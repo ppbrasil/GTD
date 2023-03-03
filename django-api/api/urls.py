@@ -16,11 +16,11 @@ from .views import (
     TaskListReadinessWaitingAPIView,
     TaskDisableAPIView,
     TaskListAPIView,
-    TagCreateAPIView,
-    TagUpdateAPIView,
-    TagDisableAPIView,
-    TagListAPIView,
-    TagDetailAPIView
+    SimpleTagCreateAPIView,
+    SimpleTagUpdateAPIView,
+    SimpleTagDisableAPIView,
+    SimpleTagListAPIView,
+    SimpleTagDetailAPIView
 )
 
 urlpatterns = [
@@ -40,9 +40,9 @@ urlpatterns = [
     path('task/waiting/', TaskListReadinessWaitingAPIView.as_view(), name='waiting_task_list'),
     path('task/disable/<int:pk>/', TaskDisableAPIView.as_view(), name='task_disable'),
     path('task/', TaskListAPIView.as_view(), name='task_list'),
-    path('tag/create/', TagCreateAPIView.as_view(), name='tag_create'),
-    path('tag/update/<int:pk>/', TagUpdateAPIView.as_view(), name='tag_update'),
-    path('tag/disable/<int:pk>/', TagDisableAPIView.as_view(), name='tag_disable'),
-    path('tag/', TagListAPIView.as_view(), name='tag_list'),
-    path('tag/<int:pk>/', TagDetailAPIView.as_view(), name='tag_detail'),    
+    path('simpletag/create/', SimpleTagCreateAPIView.as_view(), name='simpletag_create'),
+    path('simpletag/update/<int:pk>/', SimpleTagUpdateAPIView.as_view(), name='simpletag_update'),
+    path('simpletag/disable/<int:pk>/', SimpleTagDisableAPIView.as_view(), name='simpletag_disable'),
+    path('simpletag/', SimpleTagListAPIView.as_view(), name='simpletag_list'),
+    path('simpletag/<int:pk>/', SimpleTagDetailAPIView.as_view(), name='simpletag_detail'),    
 ]

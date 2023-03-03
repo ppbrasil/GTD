@@ -3,8 +3,8 @@ from rest_framework import generics, mixins, permissions, authentication, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from tasks.models import Task, Tag
-from tasks.serializers import TaskSerializer, TagSerializer
+from tasks.models import Task, SimpleTag
+from tasks.serializers import TaskSerializer, SimpleTagSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -160,9 +160,9 @@ class TaskListDoneAPIView(TaskListAPIView):
     def get_queryset(self):
         return super().get_queryset().filter(done=True)
 
-class TagCreateAPIView(generics.CreateAPIView):
+class SimpleTagCreateAPIView(generics.CreateAPIView):
     http_method_names = ['post']
-    serializer_class = TagSerializer
+    serializer_class = SimpleTagSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
@@ -171,28 +171,28 @@ class TagCreateAPIView(generics.CreateAPIView):
         serializer.save(user=user)
         return super().perform_create(serializer)
 
-class TagDetailAPIView(generics.RetrieveAPIView):
+class SimpleTagDetailAPIView(generics.RetrieveAPIView):
     http_method_names = ['get']
-    queryset = Tag.objects.all().filter(is_active=True)
-    serializer_class = TagSerializer
+    queryset = SimpleTag.objects.all().filter(is_active=True)
+    serializer_class = SimpleTagSerializer
     authentication_classes = [TokenAuthentication]
     lookup_field = 'pk'
     permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
 
     def get(self, request, pk):
         try:
-            tag = Tag.objects.get(pk=pk)
+            tag = SimpleTag.objects.get(pk=pk)
             if tag.is_active == False or request.user != tag.user:
                 return Response(status=status.HTTP_403_FORBIDDEN)
-            serializer = TagSerializer(tag)
+            serializer = SimpleTagSerializer(tag)
             return Response(serializer.data)
         except:
             return Response(status=status.HTTP_403_FORBIDDEN)    
     
-class TagUpdateAPIView(generics.UpdateAPIView):
+class SimpleTagUpdateAPIView(generics.UpdateAPIView):
     http_method_names = ['patch']
-    queryset = Tag.objects.all().filter(is_active=True)
-    serializer_class = TagSerializer
+    queryset = SimpleTag.objects.all().filter(is_active=True)
+    serializer_class = SimpleTagSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
     lookup_field = 'pk'
@@ -201,28 +201,28 @@ class TagUpdateAPIView(generics.UpdateAPIView):
         kwargs['partial'] = True
         return super().get_serializer(*args, **kwargs)
 
-class TagListAPIView(generics.ListAPIView):
+class SimpleTagListAPIView(generics.ListAPIView):
     http_method_names = ['get']
-    serializer_class = TagSerializer
+    serializer_class = SimpleTagSerializer
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        return Tag.objects.filter(
+        return SimpleTag.objects.filter(
             user=self.request.user,
             is_active=True
         )
 
-class TagDisableAPIView(APIView):
+class SimpleTagDisableAPIView(APIView):
     http_method_names = ['patch']
     authentication_classes = [TokenAuthentication]
     permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
 
     def patch(self, request, pk):
-        tag = get_object_or_404(Tag, pk=pk)
+        tag = get_object_or_404(SimpleTag, pk=pk)
         if tag.is_active == False or request.user != tag.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
         tag.is_active = False
         tag.save()
-        serializer = TagSerializer(tag)
+        serializer = SimpleTagSerializer(tag)
         return Response(serializer.data)

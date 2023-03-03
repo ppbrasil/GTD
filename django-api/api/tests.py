@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task, Tag
+from tasks.models import Task, SimpleTag
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -58,13 +58,13 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(task.readiness, 'inbox')
         self.assertEqual(task.notes, None)
 
-    def test_create_task_with_tags(self):
+    def test_create_task_with_simpletags(self):
         self.client.force_authenticate(user=self.user)
-        # Create a task with tags
+        # Create a task with simpletags
         url = reverse('task_create')
         data = {
             'name': 'Test task',
-            'tags': [{'name': 'tag1'}, {'name': 'tag2'}]
+            'simpletags': [{'name': 'simpletag1'}, {'name': 'simpletag2'}]
         }
         print(data)
         response = self.client.post(url, data, format='json')
@@ -72,14 +72,14 @@ class TaskCreateAPIViewTest(APITestCase):
         print('Response data:', response.content)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
-        # Check that the task and tags have been created
+        # Check that the task and simpletags have been created
         task = Task.objects.get(name='Test task')
-        print(task.tags.all())
+        print(task.simpletags.all())
         self.assertEqual(task.name, 'Test task')
         self.assertEqual(task.user, self.user)
-        self.assertEqual(task.tags.count(), 2)
-        self.assertTrue(task.tags.filter(name='tag1').exists())
-        self.assertTrue(task.tags.filter(name='tag2').exists())
+        self.assertEqual(task.simpletags.count(), 2)
+        self.assertTrue(task.simpletags.filter(name='simpletag1').exists())
+        self.assertTrue(task.simpletags.filter(name='simpletag2').exists())
         
     def test_create_invalid_task(self):
         self.client.force_authenticate(user=self.user)
@@ -153,138 +153,138 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.readiness, 'anytime')
         self.assertEqual(task.notes, 'This is an updated test task')
 
-    def test_add_new_tag_to_task(self):
-        # Add existing tag to task's tag list
-        existing_tag_data = {'name': 'Tag 1', 'user': self.user.id}
-        data = {'tags': [existing_tag_data]}
+    def test_add_new_simpletag_to_task(self):
+        # Add existing simpletag to task's simpletag list
+        existing_simpletag_data = {'name': 'SimpleTag 1', 'user': self.user.id}
+        data = {'simpletags': [existing_simpletag_data]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 1)
-        self.assertIn(existing_tag_data['name'], [tag.name for tag in task.tags.all()])
+        self.assertEqual(task.simpletags.count(), 1)
+        self.assertIn(existing_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
 
-        # Add new tag to task's tag list
-        new_tag_data = {'name': 'New Tag', 'user': self.user.id}
-        data = {'tags': [existing_tag_data, new_tag_data]}
+        # Add new simpletag to task's simpletag list
+        new_simpletag_data = {'name': 'New SimpleTag', 'user': self.user.id}
+        data = {'simpletags': [existing_simpletag_data, new_simpletag_data]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 2)
-        self.assertIn(existing_tag_data['name'], [tag.name for tag in task.tags.all()])
-        self.assertIn(new_tag_data['name'], [tag.name for tag in task.tags.all()])
+        self.assertEqual(task.simpletags.count(), 2)
+        self.assertIn(existing_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
+        self.assertIn(new_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
 
-    def test_add_existing_tag_to_task(self):
-        # Create an existing tag
-        existing_tag_name = 'Existing Tag'
-        existing_tag = Tag.objects.create(name=existing_tag_name, user=self.user)
+    def test_add_existing_simpletag_to_task(self):
+        # Create an existing simpletag
+        existing_simpletag_name = 'Existing SimpleTag'
+        existing_simpletag = SimpleTag.objects.create(name=existing_simpletag_name, user=self.user)
         
-        # Add existing tag to task's tag list
-        data = {'tags': [{'name': existing_tag_name}]}
+        # Add existing simpletag to task's simpletag list
+        data = {'simpletags': [{'name': existing_simpletag_name}]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 1)
-        self.assertIn(existing_tag, task.tags.all())
+        self.assertEqual(task.simpletags.count(), 1)
+        self.assertIn(existing_simpletag, task.simpletags.all())
 
-    def test_create_new_tag_while_trying_to_add_tag_with_same_name_but_from_different_user_to_task(self):
+    def test_create_new_simpletag_while_trying_to_add_simpletag_with_same_name_but_from_different_user_to_task(self):
         another_user=User.objects.create()
 
-        # Create an existing tag with the same name but a different user
-        existing_tag_name = 'Tag from other user'
-        existing_tag = Tag.objects.create(name=existing_tag_name, user=another_user)
+        # Create an existing simpletag with the same name but a different user
+        existing_simpletag_name = 'SimpleTag from other user'
+        existing_simpletag = SimpleTag.objects.create(name=existing_simpletag_name, user=another_user)
         
-        # Add existing tag to task's tag list
-        data = {'tags': [{'name': existing_tag_name}]}
+        # Add existing simpletag to task's simpletag list
+        data = {'simpletags': [{'name': existing_simpletag_name}]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 1)
-        self.assertNotIn(existing_tag, task.tags.all())
-        self.assertIn(existing_tag_name, [tag.name for tag in task.tags.all()])
+        self.assertEqual(task.simpletags.count(), 1)
+        self.assertNotIn(existing_simpletag, task.simpletags.all())
+        self.assertIn(existing_simpletag_name, [simpletag.name for simpletag in task.simpletags.all()])
 
-    def test_remove_all_tags_from_task(self):
-        # Add some tags to the task
-        tag1 = Tag.objects.create(name='Tag 1', user=self.user)
-        tag2 = Tag.objects.create(name='Tag 2', user=self.user)
-        self.task.tags.add(tag1, tag2)
-        self.assertEqual(self.task.tags.count(), 2)
+    def test_remove_all_simpletags_from_task(self):
+        # Add some simpletags to the task
+        simpletag1 = SimpleTag.objects.create(name='SimpleTag 1', user=self.user)
+        simpletag2 = SimpleTag.objects.create(name='SimpleTag 2', user=self.user)
+        self.task.simpletags.add(simpletag1, simpletag2)
+        self.assertEqual(self.task.simpletags.count(), 2)
 
-        # Remove all tags from the task
-        data = {'tags': []}
+        # Remove all simpletags from the task
+        data = {'simpletags': []}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 0)
-        self.assertNotIn(tag1, task.tags.all())
-        self.assertNotIn(tag2, task.tags.all())
+        self.assertEqual(task.simpletags.count(), 0)
+        self.assertNotIn(simpletag1, task.simpletags.all())
+        self.assertNotIn(simpletag2, task.simpletags.all())
 
-    def test_update_task_with_tags(self):
-        # Add some tags to the task
-        tag1 = Tag.objects.create(name='Tag 1', user=self.user)
-        tag2 = Tag.objects.create(name='Tag 2', user=self.user)
-        self.task.tags.add(tag1, tag2)
+    def test_update_task_with_simpletags(self):
+        # Add some simpletags to the task
+        simpletag1 = SimpleTag.objects.create(name='SimpleTag 1', user=self.user)
+        simpletag2 = SimpleTag.objects.create(name='SimpleTag 2', user=self.user)
+        self.task.simpletags.add(simpletag1, simpletag2)
 
-        # Update the task's name and tags
+        # Update the task's name and simpletags
         data = {
             'name': 'Updated Test Task',
-            'tags': [{'name': 'Tag 2', 'user': self.user.id}, {'name': 'Tag 3', 'user': self.user.id}]
+            'simpletags': [{'name': 'SimpleTag 2', 'user': self.user.id}, {'name': 'SimpleTag 3', 'user': self.user.id}]
         }
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Check that the task and its tags were updated
+        # Check that the task and its simpletags were updated
         task = Task.objects.get(id=self.task.id)
         self.assertEqual(task.name, 'Updated Test Task')
-        self.assertEqual(task.tags.count(), 2)
-        self.assertNotIn(tag1, task.tags.all())
-        self.assertIn(tag2, task.tags.all())
-        self.assertIn('Tag 3', [tag.name for tag in task.tags.all()])
+        self.assertEqual(task.simpletags.count(), 2)
+        self.assertNotIn(simpletag1, task.simpletags.all())
+        self.assertIn(simpletag2, task.simpletags.all())
+        self.assertIn('SimpleTag 3', [simpletag.name for simpletag in task.simpletags.all()])
 
-    def test_add_existing_tag_from_another_user_to_task(self):
-        # Create a tag for a different user
+    def test_add_existing_simpletag_from_another_user_to_task(self):
+        # Create a simpletag for a different user
         other_user = User.objects.create_user(
             username='otheruser',
             password='testpass123',
             email='otheruser@example.com'
         )
-        tag_name = 'Existing Tag'
-        tag = Tag.objects.create(name=tag_name, user=other_user)
+        simpletag_name = 'Existing SimpleTag'
+        simpletag = SimpleTag.objects.create(name=simpletag_name, user=other_user)
 
-        # Add the existing tag to the task of the current user
-        data = {'tags': [{'name': tag_name}]}
+        # Add the existing simpletag to the task of the current user
+        data = {'simpletags': [{'name': simpletag_name}]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 1)
+        self.assertEqual(task.simpletags.count(), 1)
 
-        # Verify that the added tag belongs to the current user
-        added_tag = task.tags.first()
-        self.assertEqual(added_tag.name, tag_name)
-        self.assertEqual(added_tag.user, self.user)
-        self.assertNotEqual(added_tag, tag)
-        self.assertNotEqual(added_tag.id, tag.id)
-        self.assertEqual(Tag.objects.filter(name=tag_name, user=self.user).count(), 1)
-        self.assertEqual(Tag.objects.filter(name=tag_name, user=other_user).count(), 1)
+        # Verify that the added simpletag belongs to the current user
+        added_simpletag = task.simpletags.first()
+        self.assertEqual(added_simpletag.name, simpletag_name)
+        self.assertEqual(added_simpletag.user, self.user)
+        self.assertNotEqual(added_simpletag, simpletag)
+        self.assertNotEqual(added_simpletag.id, simpletag.id)
+        self.assertEqual(SimpleTag.objects.filter(name=simpletag_name, user=self.user).count(), 1)
+        self.assertEqual(SimpleTag.objects.filter(name=simpletag_name, user=other_user).count(), 1)
 
-    def test_remove_tag_from_task(self):
-        tag = Tag.objects.create(name='Tag 2', user=self.user)
-        self.task.tags.add(tag)
-        self.assertEqual(self.task.tags.count(), 1)
-        data = {'tags': [{'name': 'Tag 1', 'user': self.user.id}]}
+    def test_remove_simpletag_from_task(self):
+        simpletag = SimpleTag.objects.create(name='SimpleTag 2', user=self.user)
+        self.task.simpletags.add(simpletag)
+        self.assertEqual(self.task.simpletags.count(), 1)
+        data = {'simpletags': [{'name': 'SimpleTag 1', 'user': self.user.id}]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        self.assertEqual(task.tags.count(), 1)
-        self.assertNotIn(tag, task.tags.all())
-        self.assertIn(tag, Tag.objects.all())
+        self.assertEqual(task.simpletags.count(), 1)
+        self.assertNotIn(simpletag, task.simpletags.all())
+        self.assertIn(simpletag, SimpleTag.objects.all())
 
     def test_update_invalid_task_id(self):
         url = reverse('task_update', kwargs={'pk': self.task.id + 1})
@@ -1098,13 +1098,13 @@ class TaskListAPIViewTest(APITestCase):
         self.assertEqual(len(response.data), 1)
         self.assertEqual(response.data[0]['name'], self.task3.name)
 
-class TagCreateAPIViewTest(APITestCase):
+class SimpleTagCreateAPIViewTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='tagcreateuser', password='testpass123', email='tagcreateuser@example.com')
+        self.user = User.objects.create_user(username='simpletagcreateuser', password='testpass123', email='simpletagcreateuser@example.com')
 
-    def test_create_valid_tag(self):
+    def test_create_valid_simpletag(self):
         self.client.force_authenticate(user=self.user)
-        url = reverse('tag_create')
+        url = reverse('simpletag_create')
         data = {
             'name': 'market',
         }
@@ -1112,138 +1112,137 @@ class TagCreateAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(response.data['name'], 'market')
 
-class TagDetailAPIViewTest(APITestCase):
+class SimpleTagDetailAPIViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='testuser', password='testpass123', email='testuser@example.com')
-        self.tag = Tag.objects.create(name='Test Tag', user=self.user)
-        self.url = reverse('tag_detail', kwargs={'pk': self.tag.pk})
+        self.simpletag = SimpleTag.objects.create(name='Test SimpleTag', user=self.user)
+        self.url = reverse('simpletag_detail', kwargs={'pk': self.simpletag.pk})
 
-    def test_get_valid_tag(self):
+    def test_get_valid_simpletag(self):
         self.client.force_authenticate(user=self.user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(response.data['id'], self.tag.id)
-        self.assertEqual(response.data['name'], self.tag.name)
+        self.assertEqual(response.data['id'], self.simpletag.id)
+        self.assertEqual(response.data['name'], self.simpletag.name)
 
-    def test_get_invalid_tag(self):
+    def test_get_invalid_simpletag(self):
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(reverse('tag_detail', kwargs={'pk': self.tag.pk + 1}))
+        response = self.client.get(reverse('simpletag_detail', kwargs={'pk': self.simpletag.pk + 1}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_get_tag_from_different_user(self):
+    def test_get_simpletag_from_different_user(self):
         other_user = User.objects.create_user(username='testuser2', password='testpass123', email='testuser2@example.com')
-        tag = Tag.objects.create(name='Test Tag 2', user=other_user)
+        simpletag = SimpleTag.objects.create(name='Test SimpleTag 2', user=other_user)
         self.client.force_authenticate(user=self.user)
-        response = self.client.get(reverse('tag_detail', kwargs={'pk': tag.pk}))
+        response = self.client.get(reverse('simpletag_detail', kwargs={'pk': simpletag.pk}))
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_get_tag_unauthenticated(self):
+    def test_get_simpletag_unauthenticated(self):
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-
-class TagUpdateAPIViewTest(APITestCase):
+class SimpleTagUpdateAPIViewTest(APITestCase):
     def setUp(self):
-        self.user = User.objects.create_user(username='tagupdateuser', password='testpass123', email='tagupdateuser@example.com')
+        self.user = User.objects.create_user(username='simpletagupdateuser', password='testpass123', email='simpletagupdateuser@example.com')
         self.client.force_authenticate(user=self.user)
-        self.tag = Tag.objects.create(name='market', user=self.user)
+        self.simpletag = SimpleTag.objects.create(name='market', user=self.user)
 
-    def test_update_valid_tag(self):
-        url = reverse('tag_update', kwargs={'pk': self.tag.id})
+    def test_update_valid_simpletag(self):
+        url = reverse('simpletag_update', kwargs={'pk': self.simpletag.id})
         data = {
             'name': 'grocery',
             'is_active': False,
         }
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        tag = Tag.objects.get(id=self.tag.id)
-        self.assertEqual(tag.name, 'grocery')
-        self.assertFalse(tag.is_active)
+        simpletag = SimpleTag.objects.get(id=self.simpletag.id)
+        self.assertEqual(simpletag.name, 'grocery')
+        self.assertFalse(simpletag.is_active)
 
-class TagDisableAPIViewTest(APITestCase):
+class SimpleTagDisableAPIViewTest(APITestCase):
 
     def setUp(self):
         # Create a test user and authentication token
-        self.user = User.objects.create_user(username='tagdisableuser1', password='testpass', email='tagdisableuser1@example.com')
+        self.user = User.objects.create_user(username='simpletagdisableuser1', password='testpass', email='simpletagdisableuser1@example.com')
 
-        # Create some test Tag objects
-        self.tag1 = Tag.objects.create(
+        # Create some test SimpleTag objects
+        self.simpletag1 = SimpleTag.objects.create(
             user=self.user,
             name='market', 
         )
-        self.tag2 = Tag.objects.create(
+        self.simpletag2 = SimpleTag.objects.create(
             user=self.user,
             name='downtown', 
         )
 
         self.client.force_authenticate(user=self.user)
 
-    def test_disable_active_tag(self):
-        # Disable an active tag
-        url = reverse('tag_disable', kwargs={'pk': self.tag1.pk})
+    def test_disable_active_simpletag(self):
+        # Disable an active simpletag
+        url = reverse('simpletag_disable', kwargs={'pk': self.simpletag1.pk})
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
-        # Check that the tag has been disabled
-        tag = Tag.objects.get(id=self.tag1.id)
-        self.assertFalse(tag.is_active)
+        # Check that the simpletag has been disabled
+        simpletag = SimpleTag.objects.get(id=self.simpletag1.id)
+        self.assertFalse(simpletag.is_active)
 
-    def test_disable_inactive_tag(self):
-        # Try to disable an inactive tag
-        self.tag2.is_active = False
-        self.tag2.save()
+    def test_disable_inactive_simpletag(self):
+        # Try to disable an inactive simpletag
+        self.simpletag2.is_active = False
+        self.simpletag2.save()
 
-        url = reverse('tag_disable', kwargs={'pk': self.tag2.pk})
+        url = reverse('simpletag_disable', kwargs={'pk': self.simpletag2.pk})
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_disable_tag_of_another_user(self):
-        # Try to disable a tag that belongs to another user
-        user2 = User.objects.create_user(username='tagdisableuser2', password='testpass', email='tagdisableuser2@example.com')
-        tag3 = Tag.objects.create(
+    def test_disable_simpletag_of_another_user(self):
+        # Try to disable a simpletag that belongs to another user
+        user2 = User.objects.create_user(username='simpletagdisableuser2', password='testpass', email='simpletagdisableuser2@example.com')
+        simpletag3 = SimpleTag.objects.create(
             user=user2,
             name='beach', 
         )
         self.client.force_authenticate(user=self.user)
 
-        url = reverse('tag_disable', kwargs={'pk': tag3.pk})
+        url = reverse('simpletag_disable', kwargs={'pk': simpletag3.pk})
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
-    def test_disable_nonexistent_tag(self):
-        # Try to disable a tag that doesn't exist
-        url = reverse('tag_disable', kwargs={'pk': 999})
+    def test_disable_nonexistent_simpletag(self):
+        # Try to disable a simpletag that doesn't exist
+        url = reverse('simpletag_disable', kwargs={'pk': 999})
         response = self.client.patch(url)
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
-class TagListAPIViewTest(APITestCase):
+class SimpleTagListAPIViewTest(APITestCase):
     def setUp(self):
         self.user1 = User.objects.create_user(username='user1', password='testpass123', email='user1@example.com')
         self.user2 = User.objects.create_user(username='user2', password='testpass123', email='user2@example.com')
-        self.tag1 = Tag.objects.create(name='tag1', user=self.user1)
-        self.tag2 = Tag.objects.create(name='tag2', user=self.user1)
-        self.tag3 = Tag.objects.create(name='tag3', user=self.user2)
+        self.simpletag1 = SimpleTag.objects.create(name='simpletag1', user=self.user1)
+        self.simpletag2 = SimpleTag.objects.create(name='simpletag2', user=self.user1)
+        self.simpletag3 = SimpleTag.objects.create(name='simpletag3', user=self.user2)
 
-    def test_list_tags(self):
+    def test_list_simpletags(self):
         self.client.force_authenticate(user=self.user1)
-        url = reverse('tag_list')
+        url = reverse('simpletag_list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.data), 2)
-        tag_names = [tag['name'] for tag in response.data]
-        self.assertIn(self.tag1.name, tag_names)
-        self.assertIn(self.tag2.name, tag_names)
-        self.assertNotIn(self.tag3.name, tag_names)
+        simpletag_names = [simpletag['name'] for simpletag in response.data]
+        self.assertIn(self.simpletag1.name, simpletag_names)
+        self.assertIn(self.simpletag2.name, simpletag_names)
+        self.assertNotIn(self.simpletag3.name, simpletag_names)
 
-    def test_list_tags_unauthenticated(self):
-        url = reverse('tag_list')
+    def test_list_simpletags_unauthenticated(self):
+        url = reverse('simpletag_list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_list_tags_different_user(self):
+    def test_list_simpletags_different_user(self):
         self.client.force_authenticate(user=self.user1)
-        url = reverse('tag_list')
+        url = reverse('simpletag_list')
         response = self.client.get(url, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        tag_names = [tag['name'] for tag in response.data]
-        self.assertNotIn(self.tag3.name, tag_names)
+        simpletag_names = [simpletag['name'] for simpletag in response.data]
+        self.assertNotIn(self.simpletag3.name, simpletag_names)
