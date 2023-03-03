@@ -5,7 +5,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task, SimpleTag
+from tasks.models import Task, SimpleTag, Person
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -81,6 +81,25 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertTrue(task.simpletags.filter(name='simpletag1').exists())
         self.assertTrue(task.simpletags.filter(name='simpletag2').exists())
         
+    def test_create_task_with_persons(self):
+        self.client.force_authenticate(user=self.user)
+        # Create a task with persons
+        url = reverse('task_create')
+        data = {
+            'name': 'Test task',
+            'persons': [{'name': 'person1'}, {'name': 'person2'}]
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that the task and persons have been created
+        task = Task.objects.get(name='Test task')
+        self.assertEqual(task.name, 'Test task')
+        self.assertEqual(task.user, self.user)
+        self.assertEqual(task.persons.count(), 2)
+        self.assertTrue(task.persons.filter(name='person1').exists())
+        self.assertTrue(task.persons.filter(name='person2').exists())
+
     def test_create_invalid_task(self):
         self.client.force_authenticate(user=self.user)
         url = reverse('task_create')
@@ -175,6 +194,28 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertIn(existing_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
         self.assertIn(new_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
 
+    def test_add_new_person_to_task(self):
+        # Add existing person to task's person list
+        existing_person_data = {'name': 'Person 1', 'user': self.user.id}
+        data = {'persons': [existing_person_data]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 1)
+        self.assertIn(existing_person_data['name'], [person.name for person in task.persons.all()])
+
+        # Add new person to task's person list
+        new_person_data = {'name': 'New Person', 'user': self.user.id}
+        data = {'persons': [existing_person_data, new_person_data]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 2)
+        self.assertIn(existing_person_data['name'], [person.name for person in task.persons.all()])
+        self.assertIn(new_person_data['name'], [person.name for person in task.persons.all()])
+
     def test_add_existing_simpletag_to_task(self):
         # Create an existing simpletag
         existing_simpletag_name = 'Existing SimpleTag'
@@ -188,6 +229,20 @@ class TaskUpdateAPIViewTest(APITestCase):
         task = Task.objects.get(id=self.task.id)
         self.assertEqual(task.simpletags.count(), 1)
         self.assertIn(existing_simpletag, task.simpletags.all())
+
+    def test_add_existing_person_to_task(self):
+        # Create an existing person
+        existing_person_name = 'Existing Person'
+        existing_person = Person.objects.create(name=existing_person_name, user=self.user)
+
+        # Add existing person to task's person list
+        data = {'persons': [{'name': existing_person_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 1)
+        self.assertIn(existing_person, task.persons.all())
 
     def test_create_new_simpletag_while_trying_to_add_simpletag_with_same_name_but_from_different_user_to_task(self):
         another_user=User.objects.create()
@@ -206,6 +261,23 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertNotIn(existing_simpletag, task.simpletags.all())
         self.assertIn(existing_simpletag_name, [simpletag.name for simpletag in task.simpletags.all()])
 
+    def test_create_new_person_while_trying_to_add_person_with_same_name_but_from_different_user_to_task(self):
+        another_user=User.objects.create()
+
+        # Create an existing person with the same name but a different user
+        existing_person_name = 'Person from other user'
+        existing_person = Person.objects.create(name=existing_person_name, user=another_user)
+        
+        # Add existing person to task's person list
+        data = {'persons': [{'name': existing_person_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 1)
+        self.assertNotIn(existing_person, task.persons.all())
+        self.assertIn(existing_person_name, [person.name for person in task.persons.all()])
+
     def test_remove_all_simpletags_from_task(self):
         # Add some simpletags to the task
         simpletag1 = SimpleTag.objects.create(name='SimpleTag 1', user=self.user)
@@ -222,6 +294,23 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.simpletags.count(), 0)
         self.assertNotIn(simpletag1, task.simpletags.all())
         self.assertNotIn(simpletag2, task.simpletags.all())
+
+    def test_remove_all_persons_from_task(self):
+        # Add some persons to the task
+        person1 = Person.objects.create(name='Person 1', user=self.user)
+        person2 = Person.objects.create(name='Person 2', user=self.user)
+        self.task.persons.add(person1, person2)
+        self.assertEqual(self.task.persons.count(), 2)
+
+        # Remove all persons from the task
+        data = {'persons': []}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 0)
+        self.assertNotIn(person1, task.persons.all())
+        self.assertNotIn(person2, task.persons.all())
 
     def test_update_task_with_simpletags(self):
         # Add some simpletags to the task
@@ -245,6 +334,29 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertNotIn(simpletag1, task.simpletags.all())
         self.assertIn(simpletag2, task.simpletags.all())
         self.assertIn('SimpleTag 3', [simpletag.name for simpletag in task.simpletags.all()])
+
+    def test_update_task_with_persons(self):
+        # Add some persons to the task
+        person1 = Person.objects.create(name='Person 1', user=self.user)
+        person2 = Person.objects.create(name='Person 2', user=self.user)
+        self.task.persons.add(person1, person2)
+
+        # Update the task's name and persons
+        data = {
+            'name': 'Updated Test Task',
+            'persons': [{'name': 'Person 2'}, {'name': 'Person 3'}]
+        }
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check that the task and its persons were updated
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.name, 'Updated Test Task')
+        self.assertEqual(task.persons.count(), 2)
+        self.assertNotIn(person1, task.persons.all())
+        self.assertIn(person2, task.persons.all())
+        self.assertIn('Person 3', [person.name for person in task.persons.all()])
 
     def test_add_existing_simpletag_from_another_user_to_task(self):
         # Create a simpletag for a different user
@@ -272,6 +384,33 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertNotEqual(added_simpletag.id, simpletag.id)
         self.assertEqual(SimpleTag.objects.filter(name=simpletag_name, user=self.user).count(), 1)
         self.assertEqual(SimpleTag.objects.filter(name=simpletag_name, user=other_user).count(), 1)
+
+    def test_add_existing_person_from_another_user_to_task(self):
+        # Create a person for a different user
+        other_user = User.objects.create_user(
+            username='otheruser',
+            password='testpass123',
+            email='otheruser@example.com'
+        )
+        person_name = 'Existing Person'
+        person = Person.objects.create(name=person_name, user=other_user)
+
+        # Add the existing person to the task of the current user
+        data = {'persons': [{'name': person_name}]}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.persons.count(), 1)
+
+        # Verify that the added person belongs to the current user
+        added_person = task.persons.first()
+        self.assertEqual(added_person.name, person_name)
+        self.assertEqual(added_person.user, self.user)
+        self.assertNotEqual(added_person, person)
+        self.assertNotEqual(added_person.id, person.id)
+        self.assertEqual(Person.objects.filter(name=person_name, user=self.user).count(), 1)
+        self.assertEqual(Person.objects.filter(name=person_name, user=other_user).count(), 1)
 
     def test_remove_simpletag_from_task(self):
         simpletag = SimpleTag.objects.create(name='SimpleTag 2', user=self.user)
@@ -1246,3 +1385,153 @@ class SimpleTagListAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         simpletag_names = [simpletag['name'] for simpletag in response.data]
         self.assertNotIn(self.simpletag3.name, simpletag_names)
+
+class PersonCreateAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='personcreateuser', password='testpass123', email='personcreateuser@example.com')
+
+    def test_create_valid_person(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('person_create')
+        data = {
+            'name': 'John Doe',
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], 'John Doe')
+
+class PersonDetailAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass123', email='testuser@example.com')
+        self.person = Person.objects.create(name='Test Person', user=self.user)
+        self.url = reverse('person_detail', kwargs={'pk': self.person.pk})
+
+    def test_get_valid_person(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['id'], self.person.id)
+        self.assertEqual(response.data['name'], self.person.name)
+
+    def test_get_invalid_person(self):
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('person_detail', kwargs={'pk': self.person.pk + 1}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_person_from_different_user(self):
+        other_user = User.objects.create_user(username='testuser2', password='testpass123', email='testuser2@example.com')
+        person = Person.objects.create(name='Test Person 2', user=other_user)
+        self.client.force_authenticate(user=self.user)
+        response = self.client.get(reverse('person_detail', kwargs={'pk': person.pk}))
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_get_person_unauthenticated(self):
+        response = self.client.get(self.url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+class PersonUpdateAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='personupdateuser', password='testpass123', email='personupdateuser@example.com')
+        self.client.force_authenticate(user=self.user)
+        self.person = Person.objects.create(name='John', user=self.user)
+
+    def test_update_valid_person(self):
+        url = reverse('person_update', kwargs={'pk': self.person.id})
+        data = {
+            'name': 'Jane',
+            'is_active': False,
+        }
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        person = Person.objects.get(id=self.person.id)
+        self.assertEqual(person.name, 'Jane')
+        self.assertFalse(person.is_active)
+
+class PersonDisableAPIViewTest(APITestCase):
+
+    def setUp(self):
+        # Create a test user and authentication token
+        self.user = User.objects.create_user(username='persondisableuser1', password='testpass', email='persondisableuser1@example.com')
+
+        # Create some test Person objects
+        self.person1 = Person.objects.create(
+            user=self.user,
+            name='Alice', 
+        )
+        self.person2 = Person.objects.create(
+            user=self.user,
+            name='Bob', 
+        )
+
+        self.client.force_authenticate(user=self.user)
+
+    def test_disable_active_person(self):
+        # Disable an active person
+        url = reverse('person_disable', kwargs={'pk': self.person1.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check that the person has been disabled
+        person = Person.objects.get(id=self.person1.id)
+        self.assertFalse(person.is_active)
+
+    def test_disable_inactive_person(self):
+        # Try to disable an inactive person
+        self.person2.is_active = False
+        self.person2.save()
+
+        url = reverse('person_disable', kwargs={'pk': self.person2.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_person_of_another_user(self):
+        # Try to disable a person that belongs to another user
+        user2 = User.objects.create_user(username='persondisableuser2', password='testpass', email='persondisableuser2@example.com')
+        person3 = Person.objects.create(
+            user=user2,
+            name='Charlie', 
+        )
+        self.client.force_authenticate(user=self.user)
+
+        url = reverse('person_disable', kwargs={'pk': person3.pk})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_nonexistent_person(self):
+        # Try to disable a person that doesn't exist
+        url = reverse('person_disable', kwargs={'pk': 999})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class PersonListAPIViewTest(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(username='user1', password='testpass123', email='user1@example.com')
+        self.user2 = User.objects.create_user(username='user2', password='testpass123', email='user2@example.com')
+        self.person1 = Person.objects.create(name='person1', user=self.user1)
+        self.person2 = Person.objects.create(name='person2', user=self.user1)
+        self.person3 = Person.objects.create(name='person3', user=self.user2)
+
+    def test_list_people(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('person_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 2)
+        person_names = [person['name'] for person in response.data]
+        self.assertIn(self.person1.name, person_names)
+        self.assertIn(self.person2.name, person_names)
+        self.assertNotIn(self.person3.name, person_names)
+
+    def test_list_people_unauthenticated(self):
+        url = reverse('person_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_people_different_user(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('person_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        person_names = [person['name'] for person in response.data]
+        self.assertNotIn(self.person3.name, person_names)
+

@@ -3,8 +3,8 @@ from rest_framework import generics, mixins, permissions, authentication, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from tasks.models import Task, SimpleTag
-from tasks.serializers import TaskSerializer, SimpleTagSerializer
+from tasks.models import Task, SimpleTag, Person
+from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -226,3 +226,71 @@ class SimpleTagDisableAPIView(APIView):
         tag.save()
         serializer = SimpleTagSerializer(tag)
         return Response(serializer.data)
+    
+class PersonCreateAPIView(generics.CreateAPIView):
+    http_method_names = ['post']
+    serializer_class = PersonSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
+        return super().perform_create(serializer)
+
+class PersonDetailAPIView(generics.RetrieveAPIView):
+    http_method_names = ['get']
+    queryset = Person.objects.all().filter(is_active=True)
+    serializer_class = PersonSerializer
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'pk'
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def get(self, request, pk):
+        try:
+            person = Person.objects.get(pk=pk)
+            if person.is_active == False or request.user != person.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = SimpleTagSerializer(person)
+            return Response(serializer.data)
+        except:
+            return Response(status=status.HTTP_403_FORBIDDEN)  
+        
+class PersonUpdateAPIView(generics.UpdateAPIView):
+    http_method_names = ['patch']
+    queryset = Person.objects.all().filter(is_active=True)
+    serializer_class = PersonSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+    lookup_field = 'pk'
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().get_serializer(*args, **kwargs)
+
+class PersonListAPIView(generics.ListAPIView):
+    http_method_names = ['get']
+    serializer_class = PersonSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Person.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+
+class PersonDisableAPIView(APIView):
+    http_method_names = ['patch']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def patch(self, request, pk):
+        person = get_object_or_404(Person, pk=pk)
+        if person.is_active == False or request.user != person.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        person.is_active = False
+        person.save()
+        serializer = SimpleTagSerializer(person)
+        return Response(serializer.data)
+    

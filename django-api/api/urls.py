@@ -20,7 +20,12 @@ from .views import (
     SimpleTagUpdateAPIView,
     SimpleTagDisableAPIView,
     SimpleTagListAPIView,
-    SimpleTagDetailAPIView
+    SimpleTagDetailAPIView,
+    PersonCreateAPIView,
+    PersonUpdateAPIView,
+    PersonDisableAPIView,
+    PersonListAPIView,
+    PersonDetailAPIView,
 )
 
 urlpatterns = [
@@ -44,5 +49,11 @@ urlpatterns = [
     path('simpletag/update/<int:pk>/', SimpleTagUpdateAPIView.as_view(), name='simpletag_update'),
     path('simpletag/disable/<int:pk>/', SimpleTagDisableAPIView.as_view(), name='simpletag_disable'),
     path('simpletag/', SimpleTagListAPIView.as_view(), name='simpletag_list'),
-    path('simpletag/<int:pk>/', SimpleTagDetailAPIView.as_view(), name='simpletag_detail'),    
+    path('simpletag/<int:pk>/', SimpleTagDetailAPIView.as_view(), name='simpletag_detail'),
+    path('person/create/', PersonCreateAPIView.as_view(), name='person_create'),
+    path('person/update/<int:pk>/', PersonUpdateAPIView.as_view(), name='person_update'),
+    path('person/disable/<int:pk>/', PersonDisableAPIView.as_view(), name='person_disable'),
+    path('person/', PersonListAPIView.as_view(), name='person_list'),
+    path('person/<int:pk>/', PersonDetailAPIView.as_view(), name='person_detail'),
+   
 ]

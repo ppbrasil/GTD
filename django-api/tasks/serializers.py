@@ -50,24 +50,37 @@ class TaskSerializer(serializers.ModelSerializer):
             'persons',
         ]
 
-    def get_tags(self, obj):
+    def get_simpletags(self, obj):
         return SimpleTagSerializer(obj.simpletags.all(), many=True).data
+
+    def get_persons(self, obj):
+        return PersonSerializer(obj.simpletags.all(), many=True).data
 
     def create(self, validated_data):
         simpletags_data = validated_data.pop('simpletags', [])
+        persons_data = validated_data.pop('persons', [])
         task = Task.objects.create(**validated_data)
         for simpletag_data in simpletags_data:
             simpletag, created = SimpleTag.objects.get_or_create(user=task.user, name=simpletag_data['name'])
             task.simpletags.add(simpletag)
+        for person_data in persons_data:
+            person, created = Person.objects.get_or_create(user=task.user, name=person_data['name'])
+            task.persons.add(person)
         return task
 
     def update(self, instance, validated_data):
         simpletags_data = validated_data.pop('simpletags', None)
+        persons_data = validated_data.pop('persons', None)
         instance = super().update(instance, validated_data)
         if simpletags_data is not None:
             instance.simpletags.clear()
             for simpletag_data in simpletags_data:
                 simpletag, created = SimpleTag.objects.update_or_create(user=instance.user, name=simpletag_data['name'])
                 instance.simpletags.add(simpletag)
+        if persons_data is not None:
+            instance.persons.clear()
+            for person_data in persons_data:
+                person, created = Person.objects.get_or_create(user=instance.user, name=person_data['name'])
+                instance.persons.add(person)
         return instance
 

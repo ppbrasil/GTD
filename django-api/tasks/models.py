@@ -16,9 +16,7 @@ class SimpleTag(Tag):
     pass
 
 class Person(Tag):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    name = models.CharField(max_length=255)
-    is_active = models.BooleanField(default=True)
+    pass
 
 class WaitingFor(models.Model):
     person = models.ForeignKey('Person', on_delete=models.CASCADE, null=True, blank=True)
