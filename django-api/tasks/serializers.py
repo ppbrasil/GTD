@@ -2,8 +2,7 @@ import warnings
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Task
-from .models import SimpleTag
+from .models import Task, SimpleTag, Person
 
 
 class SimpleTagSerializer(serializers.ModelSerializer):
@@ -18,9 +17,21 @@ class SimpleTagSerializer(serializers.ModelSerializer):
             'is_active',
         ]
 
+class PersonSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
+    is_active = serializers.BooleanField(default=True)
+
+    class Meta:
+        model = Person
+        fields = [
+            'id', 
+            'name',
+            'is_active',
+        ]
 class TaskSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     simpletags = SimpleTagSerializer(many=True, required=False)
+    persons = PersonSerializer(many=True, required=False)
     due_date = serializers.DateField(required=False, allow_null=True)
     reminder = serializers.DateTimeField(required=False, allow_null=True)
 
@@ -36,6 +47,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'readiness',
             'notes',
             'simpletags',
+            'persons',
         ]
 
     def get_tags(self, obj):
