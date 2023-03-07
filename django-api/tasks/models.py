@@ -18,6 +18,9 @@ class SimpleTag(Tag):
 class Person(Tag):
     pass
 
+class Place(Tag):
+    pass
+
 class WaitingFor(models.Model):
     person = models.ForeignKey('Person', on_delete=models.CASCADE, null=True, blank=True)
     waiting_date = models.DateTimeField(null=True, blank=True)
@@ -25,9 +28,9 @@ class WaitingFor(models.Model):
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
+    name = models.CharField(max_length=255)
     done = models.BooleanField(default=False)
     focus = models.BooleanField(default=False)
-    name = models.CharField(max_length=255)
     overdue = models.BooleanField(default=False)
     due_date = models.DateField(null=True, blank=True)
     set_focus_date = models.DateField(null=True, blank=True)
@@ -42,9 +45,11 @@ class Task(models.Model):
         ],
         default='inbox'
     )
-    waiting_for = models.ForeignKey(WaitingFor, on_delete=models.CASCADE, null=True, blank=True)
+    waiting_for_person = models.ForeignKey(Person, on_delete=models.SET_NULL, blank=True, null=True, related_name='waiting_for_tasks')
+    waiting_for_time = models.DateTimeField(null=True, blank=True)
     simpletags = models.ManyToManyField(SimpleTag, through='TaskSimpleTag', blank=True)
-    persons = models.ManyToManyField(Person, through='TaskPerson', blank=True)
+    persons = models.ManyToManyField(Person, through='TaskPerson', blank=True, related_name='tasks')
+    place = models.ForeignKey(Place, on_delete=models.SET_NULL, blank=True, null=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

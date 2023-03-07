@@ -1,11 +1,13 @@
 import json
+from datetime import datetime
+from django.utils import timezone
 from django.contrib.auth.models import User
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task, SimpleTag, Person
+from tasks.models import Task, SimpleTag, Person, Place
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -19,11 +21,13 @@ class TaskCreateAPIViewTest(APITestCase):
             'name': 'Test Task 1',
             'focus': True,
             'done': False,
-            'waiting_for': None,
+            'waiting_for_person': None,
+            'waiting_for_time': None,
             'due_date': None,
             'reminder': None,
             'readiness': 'inbox',
-            'notes': 'This is a test task'
+            'notes': 'This is a test task',
+            'place': {'name':'Home'},
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
@@ -33,7 +37,8 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(task.name, 'Test Task 1')
         self.assertTrue(task.focus)
         self.assertFalse(task.done)
-        self.assertIsNone(task.waiting_for)
+        self.assertIsNone(task.waiting_for_person)
+        self.assertIsNone(task.waiting_for_time)
         self.assertIsNone(task.due_date)
         self.assertIsNone(task.reminder)
         self.assertEqual(task.readiness, 'inbox')
@@ -52,7 +57,8 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(task.name, 'Task with name only')
         self.assertEqual(task.focus, False)
         self.assertEqual(task.done, False)
-        self.assertEqual(task.waiting_for, None)
+        self.assertEqual(task.waiting_for_person, None)
+        self.assertEqual(task.waiting_for_time, None)
         self.assertEqual(task.due_date, None)
         self.assertEqual(task.reminder, None)
         self.assertEqual(task.readiness, 'inbox')
@@ -66,15 +72,11 @@ class TaskCreateAPIViewTest(APITestCase):
             'name': 'Test task',
             'simpletags': [{'name': 'simpletag1'}, {'name': 'simpletag2'}]
         }
-        print(data)
         response = self.client.post(url, data, format='json')
-        print('Request data:', json.dumps(data))
-        print('Response data:', response.content)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 
         # Check that the task and simpletags have been created
         task = Task.objects.get(name='Test task')
-        print(task.simpletags.all())
         self.assertEqual(task.name, 'Test task')
         self.assertEqual(task.user, self.user)
         self.assertEqual(task.simpletags.count(), 2)
@@ -99,6 +101,82 @@ class TaskCreateAPIViewTest(APITestCase):
         self.assertEqual(task.persons.count(), 2)
         self.assertTrue(task.persons.filter(name='person1').exists())
         self.assertTrue(task.persons.filter(name='person2').exists())
+
+    def test_create_task_with_place(self):
+        self.client.force_authenticate(user=self.user)
+        # Create a task with a place
+        url = reverse('task_create')
+        data = {
+            'name': 'Test task',
+            'place': {'name': 'home'}
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        # Check that the task and place have been created
+        task = Task.objects.get(name='Test task')
+        self.assertEqual(task.name, 'Test task')
+        self.assertEqual(task.user, self.user)
+        self.assertEqual(task.place.name, 'home')
+        self.assertEqual(task.place.user, self.user)
+
+    def test_create_task_with_waiting_for_person(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('task_create')
+        data = {
+            'name': 'Test Task 1',
+            'focus': True,
+            'done': False,
+            'waiting_for_person': {'name': 'person1'},
+            'waiting_for_time': None,
+            'due_date': None,
+            'reminder': None,
+            'readiness': 'inbox',
+            'notes': 'This is a test task'
+        }
+        response = self.client.post(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Task.objects.count(), 1)
+        task = Task.objects.first()
+        self.assertEqual(task.user, self.user)
+        self.assertEqual(task.name, 'Test Task 1')
+        self.assertTrue(task.focus)
+        self.assertFalse(task.done)
+        self.assertEqual(task.waiting_for_person.name, 'person1')
+        self.assertIsNone(task.waiting_for_time)
+        self.assertIsNone(task.due_date)
+        self.assertIsNone(task.reminder)
+        self.assertEqual(task.readiness, 'inbox')
+        self.assertEqual(task.notes, 'This is a test task')
+
+    def test_create_task_with_waiting_for_time(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('task_create')
+        data = {
+            'name': 'Test Task 2',
+            'focus': True,
+            'done': False,
+            'waiting_for_time': timezone.datetime(2023, 3, 10, 12, 0).isoformat(),
+            'due_date': None,
+            'reminder': None,
+            'readiness': 'inbox',
+            'notes': 'This is another test task'
+        }
+        response = self.client.post(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Task.objects.count(), 1)
+        task = Task.objects.first()
+        self.assertEqual(task.user, self.user)
+        self.assertEqual(task.name, 'Test Task 2')
+        self.assertTrue(task.focus)
+        self.assertFalse(task.done)
+        self.assertIsNone(task.waiting_for_person)
+        self.assertEqual(task.waiting_for_time, timezone.datetime(2023, 3, 10, 12, 0, tzinfo=timezone.get_default_timezone()))
+        self.assertIsNone(task.due_date)
+        self.assertIsNone(task.reminder)
+        self.assertEqual(task.readiness, 'inbox')
+        self.assertEqual(task.notes, 'This is another test task')
 
     def test_create_invalid_task(self):
         self.client.force_authenticate(user=self.user)
@@ -138,6 +216,7 @@ class TaskUpdateAPIViewTest(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(username='taskupdateuser', password='testpass123', email='taskupdateuser@example.com')
         self.client.force_authenticate(user=self.user)
+        self.place = Place.objects.create(user=self.user, name='Home')
         self.task = Task.objects.create(
             user=self.user,
             is_active = True,
@@ -147,7 +226,8 @@ class TaskUpdateAPIViewTest(APITestCase):
             due_date=None,
             reminder=None,
             readiness='inbox',
-            notes='This is a test task'
+            notes='This is a test task',
+            place=self.place,
         )
 
     def test_update_valid_task(self):
@@ -159,7 +239,8 @@ class TaskUpdateAPIViewTest(APITestCase):
             'due_date': '2023-03-15',
             'reminder': '2023-03-14T14:30:00Z',
             'readiness': 'anytime',
-            'notes': 'This is an updated test task'
+            'waiting_for_time': '2023-03-14T14:30:00Z',
+            'notes': 'This is an updated test task',
         }
         response = self.client.patch(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -169,12 +250,14 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertTrue(task.done)
         self.assertEqual(str(task.due_date), '2023-03-15')
         self.assertEqual(str(task.reminder), '2023-03-14 14:30:00+00:00')
+        self.assertEqual(str(task.waiting_for_time), '2023-03-14 14:30:00+00:00')
         self.assertEqual(task.readiness, 'anytime')
         self.assertEqual(task.notes, 'This is an updated test task')
+        self.assertEqual(task.place.name, 'Home')
 
     def test_add_new_simpletag_to_task(self):
         # Add existing simpletag to task's simpletag list
-        existing_simpletag_data = {'name': 'SimpleTag 1', 'user': self.user.id}
+        existing_simpletag_data = {'name': 'SimpleTag 1'}
         data = {'simpletags': [existing_simpletag_data]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
@@ -184,7 +267,7 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertIn(existing_simpletag_data['name'], [simpletag.name for simpletag in task.simpletags.all()])
 
         # Add new simpletag to task's simpletag list
-        new_simpletag_data = {'name': 'New SimpleTag', 'user': self.user.id}
+        new_simpletag_data = {'name': 'New SimpleTag'}
         data = {'simpletags': [existing_simpletag_data, new_simpletag_data]}
         url = reverse('task_update', kwargs={'pk': self.task.id})
         response = self.client.patch(url, data, format='json')
@@ -215,6 +298,64 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.persons.count(), 2)
         self.assertIn(existing_person_data['name'], [person.name for person in task.persons.all()])
         self.assertIn(new_person_data['name'], [person.name for person in task.persons.all()])
+
+    def test_add_new_place_to_task(self):
+        # Add existing place to task
+        existing_place_data = {'name': 'Place 1', 'user': self.user.id}
+        data = {'place': existing_place_data}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.place.name, 'Place 1')
+
+        # Add new place to task
+        new_place_data = {'name': 'New Place', 'user': self.user.id}
+        data = {'place': new_place_data}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task = Task.objects.get(id=self.task.id)
+        self.assertEqual(task.place.name, 'New Place')
+
+    def test_add_new_waiting_for_to_task(self):
+        self.client.force_authenticate(user=self.user)
+        task1 = Task.objects.create(user=self.user, name='Test Task 1', focus=True, done=False)
+        task2 = Task.objects.create(user=self.user, name='Test Task 2', focus=True, done=False)
+        task3 = Task.objects.create(user=self.user, name='Test Task 3', focus=True, done=False)
+        person_data = {'name': 'person1'}
+        waiting_for_person_data = {'waiting_for_person': person_data} 
+        waiting_for_time_data = {'waiting_for_time': '2023-03-10T12:00:00+00:00'}
+
+        # Test waiting_for with person only
+        data = waiting_for_person_data
+        url = reverse('task_update', kwargs={'pk': task1.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task1.refresh_from_db()
+        response = self.client.get('task_details', data, format='json')
+        self.assertEqual(task1.waiting_for_person.name, 'person1')
+        self.assertIsNone(task1.waiting_for_time)
+
+        # Test waiting_for with waiting_date only
+        data = waiting_for_time_data
+        url = reverse('task_update', kwargs={'pk': task2.id})
+        response = self.client.patch(url, data, format='json')
+        print(f"Request JSON: {json.dumps(data, indent=3)}")
+        print(f"Response content: {response.content}")
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task2.refresh_from_db()
+        self.assertIsNone(task2.waiting_for_person)
+        self.assertEqual(task2.waiting_for_time, datetime(2023, 3, 10, 12, 0, tzinfo=timezone.utc))
+
+        # Test waiting_for with person and waiting_date
+        data = dict(waiting_for_person_data, **waiting_for_time_data)
+        url = reverse('task_update', kwargs={'pk': task3.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task3.refresh_from_db()
+        self.assertEqual(task3.waiting_for_person.name, 'person1')
+        self.assertEqual(task3.waiting_for_time, datetime(2023, 3, 10, 12, 0, tzinfo=timezone.utc))
 
     def test_add_existing_simpletag_to_task(self):
         # Create an existing simpletag
@@ -311,6 +452,22 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.persons.count(), 0)
         self.assertNotIn(person1, task.persons.all())
         self.assertNotIn(person2, task.persons.all())
+
+    def test_remove_place_from_task(self):
+        # Create a place and add it to the task
+        place = Place.objects.create(name='Test Place', user=self.user)
+        self.task.place = place
+        self.task.save()
+
+        # Remove the place from the task
+        data = {'place': None}
+        url = reverse('task_update', kwargs={'pk': self.task.id})
+        response = self.client.patch(url, data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        # Check that the place has been removed from the task
+        task = Task.objects.get(id=self.task.id)
+        self.assertIsNone(task.place)
 
     def test_update_task_with_simpletags(self):
         # Add some simpletags to the task
@@ -463,6 +620,108 @@ class TaskUpdateAPIViewTest(APITestCase):
         self.assertEqual(task.readiness, 'inbox')
         self.assertEqual(task.notes, 'This is a test task')
 
+class TaskFullCreationTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser',
+            password='testpass'
+        )
+        self.client.force_authenticate(user=self.user)
+        self.task_data = {
+            'name': 'Test task',
+            'done': False,
+            'focus': False,
+            'overdue': False,
+            'due_date': '2023-04-01',
+            'set_focus_date': None,
+            'readiness': 'inbox',
+            'waiting_for_person': {
+                'name': 'John Doe'
+            },
+            'waiting_for_time': None,
+            'notes': 'This is a test task',
+            'simpletags': [
+                {'name': 'testtag1'},
+                {'name': 'testtag2'},
+            ],
+            'persons': [
+                {'name': 'Jane Doe'},
+                {'name': 'Jim Smith'},
+            ],
+            'place': {'name': 'Test place'},
+        }
+        self.url = reverse('task_create')
+        self.response = self.client.post(self.url, self.task_data, format='json')
+
+    def test_create_task_with_all_fields(self):
+        self.assertEqual(self.response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Task.objects.count(), 1)
+        task = Task.objects.get()
+        self.assertEqual(task.name, 'Test task')
+        self.assertEqual(task.done, False)
+        self.assertEqual(task.focus, False)
+        self.assertEqual(task.overdue, False)
+        self.assertEqual(str(task.due_date), '2023-04-01')
+        self.assertEqual(task.set_focus_date, None)
+        self.assertEqual(task.readiness, 'inbox')
+        self.assertEqual(task.waiting_for_person.name, 'John Doe')
+        self.assertEqual(task.waiting_for_time, None)
+        self.assertEqual(task.notes, 'This is a test task')
+        self.assertEqual(task.simpletags.count(), 2)
+        self.assertEqual(task.persons.count(), 2)
+        self.assertEqual(task.place.name, 'Test place')
+
+    def test_update_task_name(self):
+        task = Task.objects.get()
+        data = {'name': 'New task name'}
+        url = reverse('task_update', args=[task.id])
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task.refresh_from_db()
+        self.assertEqual(task.name, 'New task name')
+        self.assertEqual(task.done, False)
+        self.assertEqual(task.focus, False)
+        self.assertEqual(task.overdue, False)
+        self.assertEqual(str(task.due_date), '2023-04-01')
+        self.assertEqual(task.set_focus_date, None)
+        self.assertEqual(task.readiness, 'inbox')
+        self.assertEqual(task.waiting_for_person.name, 'John Doe')
+        self.assertEqual(task.waiting_for_time, None)
+        self.assertEqual(task.notes, 'This is a test task')
+        self.assertEqual(task.simpletags.count(), 2)
+        self.assertEqual(task.persons.count(), 2)
+        self.assertEqual(task.place.name, 'Test place')
+
+    def test_nullify_nested_entities(self):
+        task = Task.objects.get()
+        data = {
+            'waiting_for_person': None,
+            'simpletags': [],
+            'persons': [],
+            'place': None,
+        }
+        url = reverse('task_update', args=[task.id])
+        response = self.client.patch(url, data, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        task.refresh_from_db()
+        self.assertEqual(task.name, 'Test task')
+        self.assertEqual(task.done, False)
+        self.assertEqual(task.focus, False)
+        self.assertEqual(task.overdue, False)
+        self.assertEqual(str(task.due_date), '2023-04-01')
+        self.assertEqual(task.set_focus_date, None)
+        self.assertEqual(task.readiness, 'inbox')
+        self.assertIsNone(task.waiting_for_person)
+        self.assertEqual(task.waiting_for_time, None)
+        self.assertEqual(task.notes, 'This is a test task')
+        self.assertEqual(task.simpletags.count(), 0)
+        self.assertEqual(task.persons.count(), 0)
+        self.assertIsNone(task.place)
+
+
+
 class TaskToggleFocusAPIViewTest(APITestCase):
     def setUp(self):
         self.user1 = User.objects.create_user(
@@ -482,18 +741,13 @@ class TaskToggleFocusAPIViewTest(APITestCase):
             done=False,
             readiness='inbox',
         )
-        print (self.task.id)
-        print(self.task.focus)
 
     def test_toggle_focus_valid_task(self):
         self.client.force_authenticate(user=self.user1)
-        print (self.task.id)
         url = reverse('task_toggle_focus', kwargs={'pk': self.task.id})
         response = self.client.patch(url, format='json')
-        print(response.content)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         task = Task.objects.get(id=self.task.id)
-        print(f'task.focus = {task.focus}')
         self.assertTrue(task.focus)
 
     def test_toggle_focus_invalid_task_id(self):
@@ -1534,4 +1788,254 @@ class PersonListAPIViewTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         person_names = [person['name'] for person in response.data]
         self.assertNotIn(self.person3.name, person_names)
+
+class PlaceCreateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_place(self):
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('place_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], data['name'])
+        self.assertEqual(response.data['is_active'], True)
+
+        place = Place.objects.get(id=response.data['id'])
+        self.assertEqual(place.user, self.user)
+        self.assertEqual(place.name, data['name'])
+        self.assertEqual(place.is_active, True)
+
+    def test_create_place_with_empty_name(self):
+        data = {'name': ''}
+        response = self.client.post(reverse('place_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertFalse(Place.objects.filter(name=data['name']).exists())
+
+    def test_create_place_with_existing_name(self):
+        existing_place = Place.objects.create(user=self.user, name='Home')
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('place_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertEqual(Place.objects.filter(name=data['name']).count(), 1)
+        self.assertEqual(existing_place, Place.objects.get(name=data['name']))
+
+class PlaceUpdateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.place = Place.objects.create(user=self.user, name='Test Place', is_active=True)
+
+    def test_update_place(self):
+        url = reverse('place_update', kwargs={'pk': self.place.pk})
+        data = {'name': 'Updated Place Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.place.refresh_from_db()
+        self.assertEqual(self.place.name, 'Updated Place Name')
+
+    def test_update_place_with_no_name(self):
+        url = reverse('place_update', kwargs={'pk': self.place.pk})
+        data = {'name': ''}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.place.refresh_from_db()
+        self.assertNotEqual(self.place.name, '')
+
+    def test_update_place_with_existing_name(self):
+        Place.objects.create(user=self.user, name='Another Test Place', is_active=True)
+        url = reverse('place_update', kwargs={'pk': self.place.pk})
+        data = {'name': 'Another Test Place'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_inactive_place(self):
+        self.place.is_active = False
+        self.place.save()
+        url = reverse('place_update', kwargs={'pk': self.place.pk})
+        data = {'name': 'Updated Place Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_place_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('place_update', kwargs={'pk': self.place.pk})
+        data = {'name': 'Updated Place Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_place_of_another_user(self):
+        user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        place2 = Place.objects.create(user=user2, name='Test Place 2', is_active=True)
+        url = reverse('place_update', kwargs={'pk': place2.pk})
+        data = {'name': 'Updated Place Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_place_with_invalid_id(self):
+        url = reverse('place_update', kwargs={'pk': 9999})
+        data = {'name': 'Updated Place Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class PlaceDisableAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpassword'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2', email='test2@example.com', password='testpassword'
+        )
+        self.place = Place.objects.create(user=self.user, name='Test Place', is_active=True)
+
+    def test_disable_place_with_authenticated_user(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Place.objects.get(id=self.place.id).is_active)
+
+    def test_disable_place_with_unauthenticated_user(self):
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(Place.objects.get(id=self.place.id).is_active)
+
+    def test_disable_place_with_different_authenticated_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Place.objects.get(id=self.place.id).is_active)
+
+    def test_disable_nonexistent_place(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_disable', kwargs={'pk': 9999})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_disable_already_disabled_place(self):
+        self.client.force_authenticate(user=self.user)
+        self.place.is_active = False
+        self.place.save()
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_place_with_inactive_status(self):
+        self.client.force_authenticate(user=self.user)
+        self.place.is_active = False
+        self.place.save()
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_place_of_another_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('place_disable', kwargs={'pk': self.place.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Place.objects.get(id=self.place.id).is_active)
+
+class PlaceListAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpass'
+        )
+        self.places = [
+            Place.objects.create(name='Place 1', user=self.user),
+            Place.objects.create(name='Place 2', user=self.user),
+            Place.objects.create(name='Place 3', user=self.user, is_active=False),
+            Place.objects.create(name='Place 4', user=self.user),
+        ]
+
+    def test_list_all_places(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Place 1')
+        self.assertEqual(response.data[1]['name'], 'Place 2')
+        self.assertEqual(response.data[2]['name'], 'Place 4')
+
+    def test_list_active_places(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_list')
+        response = self.client.get(url + '?active=true', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Place 1')
+        self.assertEqual(response.data[1]['name'], 'Place 2')
+        self.assertEqual(response.data[2]['name'], 'Place 4')
+
+    def test_list_places_unauthenticated(self):
+        url = reverse('place_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_places_from_different_user(self):
+        other_user = User.objects.create_user(
+            username='otheruser', email='other@example.com', password='otherpass'
+        )
+        other_place = Place.objects.create(name='Other Place', user=other_user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertNotIn(other_place.id, [p['id'] for p in response.data])
+
+    def test_list_places_page_size(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('place_list')
+
+class PlaceDetailAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='testuser1',
+            password='testpass123'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            password='testpass123'
+        )
+
+        self.place1 = Place.objects.create(
+            user=self.user1,
+            name='Place 1',
+            is_active=True
+        )
+        self.place2 = Place.objects.create(
+            user=self.user2,
+            name='Place 2',
+            is_active=True
+        )
+
+    def test_unauthenticated_user_cannot_view_place(self):
+        url = reverse('place_detail', kwargs={'pk': self.place1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_authenticated_user_can_view_own_place(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('place_detail', kwargs={'pk': self.place1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_authenticated_user_cannot_view_others_place(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('place_detail', kwargs={'pk': self.place2.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_view_nonexistent_place_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('place_detail', kwargs={'pk': 100})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 

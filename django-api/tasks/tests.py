@@ -15,8 +15,7 @@ class SetAnytimeTasksWaitingForNowTestCase(TestCase):
         )
 
     def test_tasks_with_waiting_for_before_or_equal_now_are_updated_to_anytime(self):
-        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now())
-        task_waiting = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=True)
+        task_waiting = Task.objects.create(readiness='waiting', waiting_for_time=timezone.now(), user=self.user1, is_active=True)
 
         # Call the command handle method to execute the script
         call_command('set_anytime_tasks_waiting_for_now')
@@ -26,8 +25,7 @@ class SetAnytimeTasksWaitingForNowTestCase(TestCase):
         self.assertEqual(task_waiting.readiness, 'anytime')
     
     def test_tasks_with_waiting_for_after_now_are_not_updated_to_anytime(self):
-        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now() + timezone.timedelta(minutes=10))
-        task_waiting = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=True)
+        task_waiting = Task.objects.create(readiness='waiting', waiting_for_time=timezone.now() + timezone.timedelta(minutes=10), user=self.user1, is_active=True)
 
         # Call the command handle method to execute the script
         call_command('set_anytime_tasks_waiting_for_now')
@@ -47,8 +45,7 @@ class SetAnytimeTasksWaitingForNowTestCase(TestCase):
         self.assertEqual(task_inbox.readiness, 'inbox')
 
     def test_tasks_with_is_active_set_to_false_are_not_updated_to_anytime(self):
-        waiting_for = WaitingFor.objects.create(waiting_date=timezone.now())
-        task_waiting_inactive = Task.objects.create(readiness='waiting', waiting_for=waiting_for, user=self.user1, is_active=False)
+        task_waiting_inactive = Task.objects.create(readiness='waiting', waiting_for_time=timezone.now(), user=self.user1, is_active=False)
 
         # Call the command handle method to execute the script
         call_command('set_anytime_tasks_waiting_for_now')
@@ -56,7 +53,6 @@ class SetAnytimeTasksWaitingForNowTestCase(TestCase):
         # Refresh the task from the database and check if the readiness has not been updated
         task_waiting_inactive.refresh_from_db()
         self.assertEqual(task_waiting_inactive.readiness, 'waiting')
-
 
 class SetFocusTasksDueTodayTestCase(TestCase):
 
@@ -147,7 +143,6 @@ class SetFocusTasksDueTodayTestCase(TestCase):
         # Refresh the task from the database and check if focus has not been updated
         task_due_today_inactive.refresh_from_db()
         self.assertFalse(task_due_today_inactive.focus)
-
 
 class SetOverdueTasksOverdueTestCase(TestCase):
 

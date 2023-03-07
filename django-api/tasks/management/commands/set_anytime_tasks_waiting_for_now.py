@@ -9,8 +9,8 @@ class Command(BaseCommand):
     def handle(self, *args, **options):
         now = timezone.now()
         waiting_tasks = Task.objects.filter(
-            waiting_for__isnull=False, 
-            waiting_for__waiting_date__lte=now, 
+            waiting_for_time__isnull=False, 
+            waiting_for_time__lte=now, 
             is_active=True, 
             readiness='waiting'
             )

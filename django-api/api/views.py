@@ -3,8 +3,8 @@ from rest_framework import generics, mixins, permissions, authentication, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from tasks.models import Task, SimpleTag, Person
-from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer
+from tasks.models import Task, SimpleTag, Person, Place
+from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -291,6 +291,75 @@ class PersonDisableAPIView(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         person.is_active = False
         person.save()
-        serializer = SimpleTagSerializer(person)
+        serializer = PersonSerializer(person)
         return Response(serializer.data)
     
+class PlaceCreateAPIView(generics.CreateAPIView):
+    http_method_names = ['post']
+    serializer_class = PlaceSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
+        return super().perform_create(serializer)
+
+class PlaceDetailAPIView(generics.RetrieveAPIView):
+    http_method_names = ['get']
+    queryset = Place.objects.all().filter(is_active=True)
+    serializer_class = PlaceSerializer
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'pk'
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def get(self, request, pk):
+        try:
+            place = Place.objects.get(pk=pk)
+            if place.is_active == False or request.user != place.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = PlaceSerializer(place)
+            return Response(serializer.data)
+        except:
+            return Response(status=status.HTTP_403_FORBIDDEN)  
+        
+class PlaceUpdateAPIView(generics.UpdateAPIView):
+    http_method_names = ['patch']
+    serializer_class = PlaceSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Place.objects.filter(user=self.request.user, is_active=True)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().get_serializer(*args, **kwargs)
+
+class PlaceListAPIView(generics.ListAPIView):
+    http_method_names = ['get']
+    serializer_class = PlaceSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Place.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+    
+class PlaceDisableAPIView(APIView):
+    http_method_names = ['patch']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def patch(self, request, pk):
+        place = get_object_or_404(Place, pk=pk)
+        if place.is_active == False or request.user != place.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        place.is_active = False
+        place.save()
+        serializer = PlaceSerializer(place)
+        return Response(serializer.data)
+
