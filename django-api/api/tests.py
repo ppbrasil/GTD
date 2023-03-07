@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task, SimpleTag, Person, Place
+from tasks.models import Task, SimpleTag, Person, Place, Area
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -719,8 +719,6 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.simpletags.count(), 0)
         self.assertEqual(task.persons.count(), 0)
         self.assertIsNone(task.place)
-
-
 
 class TaskToggleFocusAPIViewTest(APITestCase):
     def setUp(self):
@@ -2039,3 +2037,252 @@ class PlaceDetailAPIViewTestCase(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+
+class AreaCreateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_area(self):
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('area_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], data['name'])
+        self.assertEqual(response.data['is_active'], True)
+
+        area = Area.objects.get(id=response.data['id'])
+        self.assertEqual(area.user, self.user)
+        self.assertEqual(area.name, data['name'])
+        self.assertEqual(area.is_active, True)
+
+    def test_create_area_with_empty_name(self):
+        data = {'name': ''}
+        response = self.client.post(reverse('area_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertFalse(Area.objects.filter(name=data['name']).exists())
+
+    def test_create_area_with_existing_name(self):
+        existing_area = Area.objects.create(user=self.user, name='Home')
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('area_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Area.objects.filter(name=data['name']).count(), 1)
+        self.assertEqual(existing_area, Area.objects.get(name=data['name']))
+
+class AreaUpdateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.area = Area.objects.create(user=self.user, name='Test Area', is_active=True)
+
+    def test_update_area(self):
+        url = reverse('area_update', kwargs={'pk': self.area.pk})
+        data = {'name': 'Updated Area Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.area.refresh_from_db()
+        self.assertEqual(self.area.name, 'Updated Area Name')
+
+    def test_update_area_with_no_name(self):
+        url = reverse('area_update', kwargs={'pk': self.area.pk})
+        data = {'name': ''}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.area.refresh_from_db()
+        self.assertNotEqual(self.area.name, '')
+
+    def test_update_area_with_existing_name(self):
+        Area.objects.create(user=self.user, name='Another Test Area', is_active=True)
+        url = reverse('area_update', kwargs={'pk': self.area.pk})
+        data = {'name': 'Another Test Area'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_inactive_area(self):
+        self.area.is_active = False
+        self.area.save()
+        url = reverse('area_update', kwargs={'pk': self.area.pk})
+        data = {'name': 'Updated Area Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_area_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('area_update', kwargs={'pk': self.area.pk})
+        data = {'name': 'Updated Area Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_area_of_another_user(self):
+        user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        area2 = Area.objects.create(user=user2, name='Test Area 2', is_active=True)
+        url = reverse('area_update', kwargs={'pk': area2.pk})
+        data = {'name': 'Updated Area Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_area_with_invalid_id(self):
+        url = reverse('area_update', kwargs={'pk': 9999})
+        data = {'name': 'Updated Area Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class AreaDisableAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpassword'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2', email='test2@example.com', password='testpassword'
+        )
+        self.area = Area.objects.create(user=self.user, name='Test Area', is_active=True)
+
+    def test_disable_area_with_authenticated_user(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Area.objects.get(id=self.area.id).is_active)
+
+    def test_disable_area_with_unauthenticated_user(self):
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(Area.objects.get(id=self.area.id).is_active)
+
+    def test_disable_area_with_different_authenticated_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Area.objects.get(id=self.area.id).is_active)
+
+    def test_disable_nonexistent_area(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_disable', kwargs={'pk': 9999})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_disable_already_disabled_area(self):
+        self.client.force_authenticate(user=self.user)
+        self.area.is_active = False
+        self.area.save()
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_area_with_inactive_status(self):
+        self.client.force_authenticate(user=self.user)
+        self.area.is_active = False
+        self.area.save()
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_area_of_another_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('area_disable', kwargs={'pk': self.area.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Area.objects.get(id=self.area.id).is_active)
+
+class AreaListAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpass'
+        )
+        self.areas = [
+            Area.objects.create(name='Area 1', user=self.user),
+            Area.objects.create(name='Area 2', user=self.user),
+            Area.objects.create(name='Area 3', user=self.user, is_active=False),
+            Area.objects.create(name='Area 4', user=self.user),
+        ]
+
+    def test_list_all_areas(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Area 1')
+        self.assertEqual(response.data[1]['name'], 'Area 2')
+        self.assertEqual(response.data[2]['name'], 'Area 4')
+
+    def test_list_active_areas(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_list')
+        response = self.client.get(url + '?active=true', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Area 1')
+        self.assertEqual(response.data[1]['name'], 'Area 2')
+        self.assertEqual(response.data[2]['name'], 'Area 4')
+
+    def test_list_areas_unauthenticated(self):
+        url = reverse('area_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_areas_from_different_user(self):
+        other_user = User.objects.create_user(
+            username='otheruser', email='other@example.com', password='otherpass'
+        )
+        other_area = Area.objects.create(name='Other Area', user=other_user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertNotIn(other_area.id, [p['id'] for p in response.data])
+
+    def test_list_areas_page_size(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('area_list')
+
+class AreaDetailAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='testuser1',
+            password='testpass123'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            password='testpass123'
+        )
+
+        self.area1 = Area.objects.create(
+            user=self.user1,
+            name='Area 1',
+            is_active=True
+        )
+        self.area2 = Area.objects.create(
+            user=self.user2,
+            name='Area 2',
+            is_active=True
+        )
+
+    def test_unauthenticated_user_cannot_view_area(self):
+        url = reverse('area_detail', kwargs={'pk': self.area1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_authenticated_user_can_view_own_area(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('area_detail', kwargs={'pk': self.area1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_authenticated_user_cannot_view_others_area(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('area_detail', kwargs={'pk': self.area2.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_view_nonexistent_area_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('area_detail', kwargs={'pk': 100})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -21,9 +21,8 @@ class Person(Tag):
 class Place(Tag):
     pass
 
-class WaitingFor(models.Model):
-    person = models.ForeignKey('Person', on_delete=models.CASCADE, null=True, blank=True)
-    waiting_date = models.DateTimeField(null=True, blank=True)
+class Area(Tag):
+    pass
 
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -50,6 +49,7 @@ class Task(models.Model):
     simpletags = models.ManyToManyField(SimpleTag, through='TaskSimpleTag', blank=True)
     persons = models.ManyToManyField(Person, through='TaskPerson', blank=True, related_name='tasks')
     place = models.ForeignKey(Place, on_delete=models.SET_NULL, blank=True, null=True)
+    area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -61,3 +61,4 @@ class TaskPerson(models.Model):
 class TaskSimpleTag(models.Model):
     task = models.ForeignKey(Task, on_delete=models.CASCADE)
     simpletag = models.ForeignKey(SimpleTag, on_delete=models.CASCADE)
+

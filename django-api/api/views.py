@@ -3,8 +3,8 @@ from rest_framework import generics, mixins, permissions, authentication, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from tasks.models import Task, SimpleTag, Person, Place
-from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer
+from tasks.models import Task, SimpleTag, Person, Place, Area
+from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer, AreaSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -362,4 +362,72 @@ class PlaceDisableAPIView(APIView):
         place.save()
         serializer = PlaceSerializer(place)
         return Response(serializer.data)
+    
+class AreaCreateAPIView(generics.CreateAPIView):
+    http_method_names = ['post']
+    serializer_class = AreaSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
 
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
+        return super().perform_create(serializer)
+
+class AreaDetailAPIView(generics.RetrieveAPIView):
+    http_method_names = ['get']
+    queryset = Area.objects.all().filter(is_active=True)
+    serializer_class = AreaSerializer
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'pk'
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def get(self, request, pk):
+        try:
+            area = Area.objects.get(pk=pk)
+            if area.is_active == False or request.user != area.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = AreaSerializer(area)
+            return Response(serializer.data)
+        except:
+            return Response(status=status.HTTP_403_FORBIDDEN)  
+        
+class AreaUpdateAPIView(generics.UpdateAPIView):
+    http_method_names = ['patch']
+    serializer_class = AreaSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Area.objects.filter(user=self.request.user, is_active=True)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().get_serializer(*args, **kwargs)
+
+class AreaListAPIView(generics.ListAPIView):
+    http_method_names = ['get']
+    serializer_class = AreaSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Area.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+    
+class AreaDisableAPIView(APIView):
+    http_method_names = ['patch']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def patch(self, request, pk):
+        area = get_object_or_404(Area, pk=pk)
+        if area.is_active == False or request.user != area.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        area.is_active = False
+        area.save()
+        serializer = AreaSerializer(area)
+        return Response(serializer.data)

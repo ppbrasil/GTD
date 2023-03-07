@@ -3,7 +3,7 @@ from datetime import datetime
 from django.utils import timezone
 from rest_framework import serializers
 
-from .models import Task, SimpleTag, Person, Place
+from .models import Task, SimpleTag, Person, Place, Area
 
 
 class SimpleTagSerializer(serializers.ModelSerializer):
@@ -39,17 +39,7 @@ class PersonSerializer(serializers.ModelSerializer):
             'name',
             'is_active',
         ]
-
-    # def validate(self, attrs):
-    #     user = self.context['request'].user
-    #     person_name = attrs.get('name')
-
-    #     # Check if a Place with the same name already exists for the user
-    #     if Person.objects.filter(user=user, name=person_name).exists():
-    #         raise serializers.ValidationError('A person with this name already exists.')
-        
-    #     return attrs
-    
+ 
 class PlaceSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     is_active = serializers.BooleanField(default=True)
@@ -72,6 +62,28 @@ class PlaceSerializer(serializers.ModelSerializer):
         
         return attrs
 
+class AreaSerializer(serializers.ModelSerializer):
+    id = serializers.ReadOnlyField()
+    is_active = serializers.BooleanField(default=True)
+
+    class Meta:
+        model = Area
+        fields = [
+            'id', 
+            'name',
+            'is_active',
+        ]
+
+    def validate(self, attrs):
+        user = self.context['request'].user
+        area_name = attrs.get('name')
+
+        # Check if a Place with the same name already exists for the user
+        if Area.objects.filter(user=user, name=area_name).exists():
+            raise serializers.ValidationError('An area with this name already exists.')
+        
+        return attrs
+    
 class TaskSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     due_date = serializers.DateField(required=False, allow_null=True)
@@ -98,6 +110,7 @@ class TaskSerializer(serializers.ModelSerializer):
             'simpletags',
             'persons',
             'place',
+            'area',
         ]
 
     def get_waiting_for_person(self, obj):
@@ -113,6 +126,7 @@ class TaskSerializer(serializers.ModelSerializer):
         place_data = validated_data.pop('place', None)
         waiting_for_person_data = validated_data.pop('waiting_for_person', None)
         waiting_for_time_data = validated_data.get('waiting_for_time', None)
+        area_data = validated_data.pop('area', None)
 
         task = Task.objects.create(**validated_data)
 
@@ -136,6 +150,10 @@ class TaskSerializer(serializers.ModelSerializer):
             person, created = Person.objects.get_or_create(user=task.user, name=person_data['name'])
             task.persons.add(person)
 
+        if area_data is not None:
+            area, created = Area.objects.get_or_create(user=task.user, name=area_data['name'])
+            task.area = area
+
         task.save()
         return task
 
@@ -145,6 +163,7 @@ class TaskSerializer(serializers.ModelSerializer):
         waiting_for_person_data = validated_data.pop('waiting_for_person', None)
         waiting_for_time_data = validated_data.get('waiting_for_time', None)
         place_data = validated_data.pop('place', None)
+        area_data = validated_data.pop('area', None)
 
         instance = super().update(instance, validated_data)
         
@@ -177,6 +196,13 @@ class TaskSerializer(serializers.ModelSerializer):
                 person, created = Person.objects.get_or_create(user=instance.user, name=person_data['name'])
                 instance.persons.add(person)
         
+        if 'area' in self.context['request'].data:
+            if area_data is not None:
+                area, created = Area.objects.get_or_create(user=instance.user, name=area_data['name'])
+            else:
+                area = None
+            instance.area = area
+
         instance.save()
         return instance
 

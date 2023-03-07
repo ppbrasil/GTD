@@ -2,7 +2,7 @@ from django.core.management import call_command
 from django.test import TestCase
 from django.utils import timezone
 from django.contrib.auth.models import User
-from tasks.models import Task, WaitingFor
+from tasks.models import Task
 
 
 class SetAnytimeTasksWaitingForNowTestCase(TestCase):
