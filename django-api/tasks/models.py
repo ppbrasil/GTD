@@ -24,6 +24,9 @@ class Place(Tag):
 class Area(Tag):
     pass
 
+class Project(Tag):
+    pass
+
 class Task(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     is_active = models.BooleanField(default=True)
@@ -50,6 +53,7 @@ class Task(models.Model):
     persons = models.ManyToManyField(Person, through='TaskPerson', blank=True, related_name='tasks')
     place = models.ForeignKey(Place, on_delete=models.SET_NULL, blank=True, null=True)
     area = models.ForeignKey(Area, on_delete=models.SET_NULL, blank=True, null=True)
+    project = models.ForeignKey(Project, on_delete=models.SET_NULL, blank=True, null=True)
     notes = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

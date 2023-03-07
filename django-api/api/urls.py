@@ -36,6 +36,11 @@ from .views import (
     AreaDisableAPIView,
     AreaListAPIView,
     AreaDetailAPIView,
+    ProjectCreateAPIView,
+    ProjectUpdateAPIView,
+    ProjectDisableAPIView,
+    ProjectListAPIView,
+    ProjectDetailAPIView,
 )
 
 urlpatterns = [
@@ -75,4 +80,9 @@ urlpatterns = [
     path('area/disable/<int:pk>/', AreaDisableAPIView.as_view(), name='area_disable'),
     path('area/', AreaListAPIView.as_view(), name='area_list'),
     path('area/<int:pk>/', AreaDetailAPIView.as_view(), name='area_detail'),
+    path('project/create/', ProjectCreateAPIView.as_view(), name='project_create'),
+    path('project/update/<int:pk>/', ProjectUpdateAPIView.as_view(), name='project_update'),
+    path('project/disable/<int:pk>/', ProjectDisableAPIView.as_view(), name='project_disable'),
+    path('project/', ProjectListAPIView.as_view(), name='project_list'),
+    path('project/<int:pk>/', ProjectDetailAPIView.as_view(), name='project_detail'),
 ]

@@ -7,7 +7,7 @@ from rest_framework import status
 from rest_framework.authtoken.models import Token
 from rest_framework.test import APITestCase
 
-from tasks.models import Task, SimpleTag, Person, Place, Area
+from tasks.models import Task, SimpleTag, Person, Place, Area, Project
 
 class TaskCreateAPIViewTest(APITestCase):
 
@@ -649,7 +649,8 @@ class TaskFullCreationTests(APITestCase):
                 {'name': 'Jim Smith'},
             ],
             'place': {'name': 'Test place'},
-            'area': {'name': 'Personal'}
+            'area': {'name': 'Personal'},
+            'project': {'name': 'New Job'},
         }
         self.url = reverse('task_create')
         self.response = self.client.post(self.url, self.task_data, format='json')
@@ -672,6 +673,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.persons.count(), 2)
         self.assertEqual(task.place.name, 'Test place')
         self.assertEqual(task.area.name, 'Personal')
+        self.assertEqual(task.project.name, 'New Job')
 
     def test_update_task_name(self):
         task = Task.objects.get()
@@ -695,6 +697,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.persons.count(), 2)
         self.assertEqual(task.place.name, 'Test place')
         self.assertEqual(task.area.name, 'Personal')
+        self.assertEqual(task.project.name, 'New Job')
 
     def test_nullify_nested_entities(self):
         task = Task.objects.get()
@@ -703,7 +706,8 @@ class TaskFullCreationTests(APITestCase):
             'simpletags': [],
             'persons': [],
             'place': None,
-            'area': None
+            'area': None,
+            'project': None,
         }
         url = reverse('task_update', args=[task.id])
         response = self.client.patch(url, data, format='json')
@@ -724,6 +728,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.persons.count(), 0)
         self.assertIsNone(task.place)
         self.assertIsNone(task.area)
+        self.assertIsNone(task.project)
 
 class TaskToggleFocusAPIViewTest(APITestCase):
     def setUp(self):
@@ -2288,5 +2293,254 @@ class AreaDetailAPIViewTestCase(APITestCase):
     def test_view_nonexistent_area_returns_404(self):
         self.client.force_authenticate(user=self.user1)
         url = reverse('area_detail', kwargs={'pk': 100})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+class ProjectCreateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.client.force_authenticate(user=self.user)
+
+    def test_create_project(self):
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('project_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(response.data['name'], data['name'])
+        self.assertEqual(response.data['is_active'], True)
+
+        project = Project.objects.get(id=response.data['id'])
+        self.assertEqual(project.user, self.user)
+        self.assertEqual(project.name, data['name'])
+        self.assertEqual(project.is_active, True)
+
+    def test_create_project_with_empty_name(self):
+        data = {'name': ''}
+        response = self.client.post(reverse('project_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+        self.assertFalse(Project.objects.filter(name=data['name']).exists())
+
+    def test_create_project_with_existing_name(self):
+        existing_project = Project.objects.create(user=self.user, name='Home')
+        data = {'name': 'Home'}
+        response = self.client.post(reverse('project_create'), data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(Project.objects.filter(name=data['name']).count(), 1)
+        self.assertEqual(existing_project, Project.objects.get(name=data['name']))
+
+class ProjectUpdateAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(username='testuser', password='testpass')
+        self.token = Token.objects.create(user=self.user)
+        self.client.credentials(HTTP_AUTHORIZATION='Token ' + self.token.key)
+        self.project = Project.objects.create(user=self.user, name='Test Project', is_active=True)
+
+    def test_update_project(self):
+        url = reverse('project_update', kwargs={'pk': self.project.pk})
+        data = {'name': 'Updated Project Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.project.refresh_from_db()
+        self.assertEqual(self.project.name, 'Updated Project Name')
+
+    def test_update_project_with_no_name(self):
+        url = reverse('project_update', kwargs={'pk': self.project.pk})
+        data = {'name': ''}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.project.refresh_from_db()
+        self.assertNotEqual(self.project.name, '')
+
+    def test_update_project_with_existing_name(self):
+        Project.objects.create(user=self.user, name='Another Test Project', is_active=True)
+        url = reverse('project_update', kwargs={'pk': self.project.pk})
+        data = {'name': 'Another Test Project'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_update_inactive_project(self):
+        self.project.is_active = False
+        self.project.save()
+        url = reverse('project_update', kwargs={'pk': self.project.pk})
+        data = {'name': 'Updated Project Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_project_unauthenticated(self):
+        self.client.force_authenticate(user=None)
+        url = reverse('project_update', kwargs={'pk': self.project.pk})
+        data = {'name': 'Updated Project Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_update_project_of_another_user(self):
+        user2 = User.objects.create_user(username='testuser2', password='testpass2')
+        project2 = Project.objects.create(user=user2, name='Test Project 2', is_active=True)
+        url = reverse('project_update', kwargs={'pk': project2.pk})
+        data = {'name': 'Updated Project Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_update_project_with_invalid_id(self):
+        url = reverse('project_update', kwargs={'pk': 9999})
+        data = {'name': 'Updated Project Name'}
+        response = self.client.patch(url, data)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+class ProjectDisableAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpassword'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2', email='test2@example.com', password='testpassword'
+        )
+        self.project = Project.objects.create(user=self.user, name='Test Project', is_active=True)
+
+    def test_disable_project_with_authenticated_user(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(Project.objects.get(id=self.project.id).is_active)
+
+    def test_disable_project_with_unauthenticated_user(self):
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertTrue(Project.objects.get(id=self.project.id).is_active)
+
+    def test_disable_project_with_different_authenticated_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Project.objects.get(id=self.project.id).is_active)
+
+    def test_disable_nonexistent_project(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_disable', kwargs={'pk': 9999})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_disable_already_disabled_project(self):
+        self.client.force_authenticate(user=self.user)
+        self.project.is_active = False
+        self.project.save()
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_project_with_inactive_status(self):
+        self.client.force_authenticate(user=self.user)
+        self.project.is_active = False
+        self.project.save()
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_disable_project_of_another_user(self):
+        self.client.force_authenticate(user=self.user2)
+        url = reverse('project_disable', kwargs={'pk': self.project.id})
+        response = self.client.patch(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Project.objects.get(id=self.project.id).is_active)
+
+class ProjectListAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='testuser', email='test@example.com', password='testpass'
+        )
+        self.projects = [
+            Project.objects.create(name='Project 1', user=self.user),
+            Project.objects.create(name='Project 2', user=self.user),
+            Project.objects.create(name='Project 3', user=self.user, is_active=False),
+            Project.objects.create(name='Project 4', user=self.user),
+        ]
+
+    def test_list_all_projects(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Project 1')
+        self.assertEqual(response.data[1]['name'], 'Project 2')
+        self.assertEqual(response.data[2]['name'], 'Project 4')
+
+    def test_list_active_projects(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_list')
+        response = self.client.get(url + '?active=true', format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertEqual(response.data[0]['name'], 'Project 1')
+        self.assertEqual(response.data[1]['name'], 'Project 2')
+        self.assertEqual(response.data[2]['name'], 'Project 4')
+
+    def test_list_projects_unauthenticated(self):
+        url = reverse('project_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_projects_from_different_user(self):
+        other_user = User.objects.create_user(
+            username='otheruser', email='other@example.com', password='otherpass'
+        )
+        other_project = Project.objects.create(name='Other Project', user=other_user)
+
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_list')
+        response = self.client.get(url, format='json')
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 3)
+        self.assertNotIn(other_project.id, [p['id'] for p in response.data])
+
+    def test_list_projects_page_size(self):
+        self.client.force_authenticate(user=self.user)
+        url = reverse('project_list')
+
+class ProjectDetailAPIViewTestCase(APITestCase):
+    def setUp(self):
+        self.user1 = User.objects.create_user(
+            username='testuser1',
+            password='testpass123'
+        )
+        self.user2 = User.objects.create_user(
+            username='testuser2',
+            password='testpass123'
+        )
+
+        self.project1 = Project.objects.create(
+            user=self.user1,
+            name='Project 1',
+            is_active=True
+        )
+        self.project2 = Project.objects.create(
+            user=self.user2,
+            name='Project 2',
+            is_active=True
+        )
+
+    def test_unauthenticated_user_cannot_view_project(self):
+        url = reverse('project_detail', kwargs={'pk': self.project1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_authenticated_user_can_view_own_project(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('project_detail', kwargs={'pk': self.project1.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+    def test_authenticated_user_cannot_view_others_project(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('project_detail', kwargs={'pk': self.project2.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_view_nonexistent_project_returns_404(self):
+        self.client.force_authenticate(user=self.user1)
+        url = reverse('project_detail', kwargs={'pk': 100})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)

@@ -3,8 +3,8 @@ from rest_framework import generics, mixins, permissions, authentication, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
-from tasks.models import Task, SimpleTag, Person, Place, Area
-from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer, AreaSerializer
+from tasks.models import Task, SimpleTag, Person, Place, Area, Project
+from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer, AreaSerializer, ProjectSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -430,4 +430,74 @@ class AreaDisableAPIView(APIView):
         area.is_active = False
         area.save()
         serializer = AreaSerializer(area)
+        return Response(serializer.data)
+
+    
+class ProjectCreateAPIView(generics.CreateAPIView):
+    http_method_names = ['post']
+    serializer_class = ProjectSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        user = self.request.user
+        serializer.save(user=user)
+        return super().perform_create(serializer)
+
+class ProjectDetailAPIView(generics.RetrieveAPIView):
+    http_method_names = ['get']
+    queryset = Project.objects.all().filter(is_active=True)
+    serializer_class = ProjectSerializer
+    authentication_classes = [TokenAuthentication]
+    lookup_field = 'pk'
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def get(self, request, pk):
+        try:
+            project = Project.objects.get(pk=pk)
+            if project.is_active == False or request.user != project.user:
+                return Response(status=status.HTTP_403_FORBIDDEN)
+            serializer = ProjectSerializer(project)
+            return Response(serializer.data)
+        except:
+            return Response(status=status.HTTP_403_FORBIDDEN)  
+        
+class ProjectUpdateAPIView(generics.UpdateAPIView):
+    http_method_names = ['patch']
+    serializer_class = ProjectSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+    lookup_field = 'pk'
+
+    def get_queryset(self):
+        return Project.objects.filter(user=self.request.user, is_active=True)
+
+    def get_serializer(self, *args, **kwargs):
+        kwargs['partial'] = True
+        return super().get_serializer(*args, **kwargs)
+
+class ProjectListAPIView(generics.ListAPIView):
+    http_method_names = ['get']
+    serializer_class = ProjectSerializer
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Project.objects.filter(
+            user=self.request.user,
+            is_active=True
+        )
+    
+class ProjectDisableAPIView(APIView):
+    http_method_names = ['patch']
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [permissions.IsAuthenticated, IsObjectOwner]
+
+    def patch(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        if project.is_active == False or request.user != project.user:
+            return Response(status=status.HTTP_403_FORBIDDEN)
+        project.is_active = False
+        project.save()
+        serializer = ProjectSerializer(project)
         return Response(serializer.data)
