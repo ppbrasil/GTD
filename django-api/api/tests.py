@@ -649,6 +649,7 @@ class TaskFullCreationTests(APITestCase):
                 {'name': 'Jim Smith'},
             ],
             'place': {'name': 'Test place'},
+            'area': {'name': 'Personal'}
         }
         self.url = reverse('task_create')
         self.response = self.client.post(self.url, self.task_data, format='json')
@@ -670,6 +671,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.simpletags.count(), 2)
         self.assertEqual(task.persons.count(), 2)
         self.assertEqual(task.place.name, 'Test place')
+        self.assertEqual(task.area.name, 'Personal')
 
     def test_update_task_name(self):
         task = Task.objects.get()
@@ -692,6 +694,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.simpletags.count(), 2)
         self.assertEqual(task.persons.count(), 2)
         self.assertEqual(task.place.name, 'Test place')
+        self.assertEqual(task.area.name, 'Personal')
 
     def test_nullify_nested_entities(self):
         task = Task.objects.get()
@@ -700,6 +703,7 @@ class TaskFullCreationTests(APITestCase):
             'simpletags': [],
             'persons': [],
             'place': None,
+            'area': None
         }
         url = reverse('task_update', args=[task.id])
         response = self.client.patch(url, data, format='json')
@@ -719,6 +723,7 @@ class TaskFullCreationTests(APITestCase):
         self.assertEqual(task.simpletags.count(), 0)
         self.assertEqual(task.persons.count(), 0)
         self.assertIsNone(task.place)
+        self.assertIsNone(task.area)
 
 class TaskToggleFocusAPIViewTest(APITestCase):
     def setUp(self):
@@ -2036,7 +2041,6 @@ class PlaceDetailAPIViewTestCase(APITestCase):
         url = reverse('place_detail', kwargs={'pk': 100})
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
-
 
 class AreaCreateAPIViewTestCase(APITestCase):
     def setUp(self):

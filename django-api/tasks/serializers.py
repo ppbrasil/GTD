@@ -93,6 +93,7 @@ class TaskSerializer(serializers.ModelSerializer):
     simpletags = SimpleTagSerializer(many=True, required=False)
     persons = PersonSerializer(many=True, required=False)
     place = PlaceSerializer(required=False, allow_null=True)
+    area = AreaSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Task
