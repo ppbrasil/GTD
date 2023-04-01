@@ -6,6 +6,7 @@ DEBUG = True
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
+    '172.31.4.18',
     'www.budatask.com',
     'budatask.com',
 ]
