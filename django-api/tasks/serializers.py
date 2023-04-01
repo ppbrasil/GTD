@@ -73,38 +73,20 @@ class AreaSerializer(serializers.ModelSerializer):
             'name',
             'is_active',
         ]
-
-    def validate(self, attrs):
-        user = self.context['request'].user
-        area_name = attrs.get('name')
-
-        # Check if a Place with the same name already exists for the user
-        if Area.objects.filter(user=user, name=area_name).exists():
-            raise serializers.ValidationError('An area with this name already exists.')
-        
-        return attrs
-
+    
 class ProjectSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
     is_active = serializers.BooleanField(default=True)
+    area = AreaSerializer(required=False, allow_null=True)
 
     class Meta:
         model = Project
         fields = [
             'id', 
             'name',
+            'area',
             'is_active',
         ]
-
-    def validate(self, attrs):
-        user = self.context['request'].user
-        project_name = attrs.get('name')
-
-        # Check if a Place with the same name already exists for the user
-        if Project.objects.filter(user=user, name=project_name).exists():
-            raise serializers.ValidationError('A project with this name already exists.')
-        
-        return attrs
 
 class TaskSerializer(serializers.ModelSerializer):
     id = serializers.ReadOnlyField()
@@ -138,13 +120,6 @@ class TaskSerializer(serializers.ModelSerializer):
             'project',
         ]
 
-    def get_waiting_for_person(self, obj):
-        waiting_for_person = getattr(obj, 'waiting_for_person', None)
-        if waiting_for_person:
-            return PersonSerializer(waiting_for_person).data
-        else:
-            return None
-
     def create(self, validated_data):
         simpletags_data = validated_data.pop('simpletags', [])
         persons_data = validated_data.pop('persons', [])
@@ -176,18 +151,27 @@ class TaskSerializer(serializers.ModelSerializer):
             person, created = Person.objects.get_or_create(user=task.user, name=person_data['name'])
             task.persons.add(person)
 
-        if area_data is not None:
-            area, created = Area.objects.get_or_create(user=task.user, name=area_data['name'])
-            task.area = area
-
         if project_data is not None:
             project, created = Project.objects.get_or_create(user=task.user, name=project_data['name'])
             task.project = project
+            task.area = project.area
+        
+        elif area_data is not None:
+            area, created = Area.objects.get_or_create(user=task.user, name=area_data['name'])
+            task.area = area
 
         task.save()
         return task
 
     def update(self, instance, validated_data):
+
+        if 'name' not in validated_data:
+            validated_data['name'] = getattr(instance, 'name')
+        if 'done' not in validated_data:
+            validated_data['done'] = getattr(instance, 'done')
+        if 'readiness' not in validated_data:
+            validated_data['readiness'] = getattr(instance, 'readiness')
+
         simpletags_data = validated_data.pop('simpletags', None)
         persons_data = validated_data.pop('persons', None)
         waiting_for_person_data = validated_data.pop('waiting_for_person', None)
@@ -244,3 +228,40 @@ class TaskSerializer(serializers.ModelSerializer):
         instance.save()
         return instance
 
+'''
+Serializers to handle the task tree
+'''
+class TaskTreeSerializer(serializers.ModelSerializer):
+    projects = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Area
+        fields = ('id', 'name', 'projects')
+
+    def get_projects(self, obj):
+        projects = obj.projects.filter(is_active=True)
+        serializer = ProjectTreeSerializer(projects, many=True)
+        return serializer.data
+
+class ProjectTreeSerializer(serializers.ModelSerializer):
+    tasks = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Project
+        fields = ('id', 'name', 'tasks')
+
+    def get_tasks(self, obj):
+        tasks = obj.tasks.filter(done=False)
+        serializer = TaskSerializer(tasks, many=True)
+        return serializer.data
+
+class TaskTreeSerializer(serializers.ModelSerializer):
+    simpletags = SimpleTagSerializer(many=True, required=False)
+    persons = PersonSerializer(many=True, required=False)
+    place = PlaceSerializer(required=False, allow_null=True)
+    project = ProjectSerializer(required=False, allow_null=True)
+    area = AreaSerializer(required=False, allow_null=True)
+
+    class Meta:
+        model = Task
+        fields = ('id', 'name', 'simpletags', 'persons', 'place', 'project', 'area')

@@ -4,7 +4,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from tasks.models import Task, SimpleTag, Person, Place, Area, Project
-from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer, AreaSerializer, ProjectSerializer
+from tasks.serializers import TaskSerializer, SimpleTagSerializer, PersonSerializer, PlaceSerializer, AreaSerializer, ProjectSerializer, TaskTreeSerializer
 from accounts.serializers import AccountCreationSerializer, AccountDetailsSerializer, LoginSerializer
 from api.authentication import TokenAuthentication
 from api.permissions import IsObjectOwner
@@ -431,7 +431,6 @@ class AreaDisableAPIView(APIView):
         area.save()
         serializer = AreaSerializer(area)
         return Response(serializer.data)
-
     
 class ProjectCreateAPIView(generics.CreateAPIView):
     http_method_names = ['post']
@@ -500,4 +499,14 @@ class ProjectDisableAPIView(APIView):
         project.is_active = False
         project.save()
         serializer = ProjectSerializer(project)
+        return Response(serializer.data)
+
+'''
+Views to handle the tree mapping
+'''
+
+class TaskTreeView(APIView):
+    def get(self, request):
+        areas = Area.objects.filter(is_active=True)
+        serializer = TaskTreeSerializer(areas, many=True)
         return Response(serializer.data)
